@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Roster EFB</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --card-bg: rgba(25, 25, 35, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-yellow: #f5c518;
+            --text-main: #f0f0f5;
+            --text-muted: #8e8e99;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            outline: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box:focus {
+            border-color: var(--accent-yellow);
+        }
+
+        section {
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .flight-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .flight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .airline-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(245, 197, 24, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .route-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .airport-code {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .flight-path-line {
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border-color);
+            margin: 0 15px;
+            position: relative;
+        }
+
+        .flight-path-line::after {
+            content: "✈";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            padding: 0 4px;
+        }
+
+        .flight-details {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .btn {
+            background: var(--text-main);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-align: center;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .timer-badge {
+            font-variant-numeric: tabular-nums;
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 20px;
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>FLIGHT ROSTER</h1>
+        <div style="font-size: 0.8rem; color: var(--text-muted);" id="utc-time">UTC --:--</div>
+    </header>
+
+    <input type="text" id="searchInput" class="search-box" placeholder="Search airline or route (e.g., Spirit, Delta)..." onkeyup="filterFlights()">
+
+    <section>
+        <h2>My Roster</h2>
+        <div id="myRosterContainer">
+            <div class="empty-state">No flights added to roster yet. Pick one below.</div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Available Routes</h2>
+        <div id="routeListContainer">
+            <!-- Dynamic Routes injected via JS -->
+        </div>
+    </section>
+
+    <script>
+        // Sample flight data pool
+        const allRoutes = [
+            { id: 1, airline: "Spirit Airlines", flightNo: "NK2800", dep: "KCLT", arr: "KLGA", aircraft: "Airbus A320neo", duration: "1h 03m", depTimestamp: Date.now() + 1000 * 60 * 18 },
+            { id: 2, airline: "Delta Air Lines", flightNo: "DL1422", dep: "KATL", arr: "KMIA", aircraft: "Boeing 737-900", duration: "1h 45m", depTimestamp: Date.now() + 1000 * 60 * 45 },
+            { id: 3, airline: "Spirit Airlines", flightNo: "NK807", dep: "KFLL", arr: "SKBO", aircraft: "Airbus A320neo", duration: "3h 20m", depTimestamp: Date.now() + 1000 * 60 * 120 },
+            { id: 4, airline: "United Airlines", flightNo: "UA452", dep: "KORD", arr: "KLAX", aircraft: "Boeing 787-10", duration: "4h 10m", depTimestamp: Date.now() + 1000 * 60 * 200 },
+            { id: 5, airline: "Lufthansa", flightNo: "LH400", dep: "EDDF", arr: "KJFK", aircraft: "Airbus A380", duration: "8h 15m", depTimestamp: Date.now() + 1000 * 60 * 350 }
+        ];
+
+        let myRoster = [];
+
+        function renderRoutes(filter = "") {
+            const container = document.getElementById("routeListContainer");
+            container.innerHTML = "";
+
+            const filtered = allRoutes.filter(r => 
+                r.airline.toLowerCase().includes(filter.toLowerCase()) || 
+                r.dep.toLowerCase().includes(filter.toLowerCase()) || 
+                r.arr.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state">No matching airlines or routes found.</div>`;
+                return;
+            }
+
+            filtered.forEach(route => {
+                const card = document.createElement("div");
+                card.className = "flight-card";
+                card.innerHTML = `
+                    <div class="flight-header">
+                        <span class="airline-tag">${route.airline} (${route.flightNo})</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${route.aircraft}</span>
+                    </div>
+                    <div class="route-info">
+                        <span class="airport-code">${route.dep}</span>
+                        <div class="flight-path-line"></div>
+                        <span class="airport-code">${route.arr}</span>
+                    </div>
+                    <div class="flight-details">
+                        <span>Est. Duration: ${route.duration}</span>
+                    </div>
+                    <button class="btn" onclick="addToRoster(${route.id})">Add to My Roster</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function addToRoster(id) {
+            const route = allRoutes.find(r => r.id === id);
+            if (!myRoster.some(r => r.id === id)) {
+                myRoster.push(route);
+                renderRoster();
+            }
+        }
+
+        function removeFromRoster(id) {
+            myRoster = myRoster.filter(r => r.id !== id);
+            renderRoster();
+        }
+
+        function renderRoster() {
+            const container = document.getElementById("myRosterContainer");
+            if (myRoster.length === 0) {
+                container.innerHTML = `<div class="empty-state">No flights added to roster yet. Pick one below.</div>`;
+                return;
+            }
+
+            container.innerHTML = "";
+            myRoster.forEach(route => {
+                const card = document.createElement("div");
+                card.className = "flight-card";
+                card.style.borderColor = "var(--accent-yellow)";
+                card.innerHTML = `
+                    <div class="flight-header">
+                        <span class="airline-tag">${route.airline} (${route.flightNo})</span>
+                        <span class="timer-badge" id="timer-${route.id}">Calculating...</span>
+                    </div>
+                    <div class="route-info">
+                        <span class="airport-code">${route.dep}</span>
+                        <div class="flight-path-line"></div>
+                        <span class="airport-code">${route.arr}</span>
+                    </div>
+                    <div class="flight-details">
+                        <span>${route.aircraft}</span>
+                        <span>${route.duration}</span>
+                    </div>
+                    <button class="btn btn-outline" onclick="removeFromRoster(${route.id})">Remove from Roster</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterFlights() {
+            const query = document.getElementById("searchInput").value;
+            renderRoutes(query);
+        }
+
+        // Live Countdown and UTC Clock update loop
+        setInterval(() => {
+            // Update UTC Clock
+            const now = new Date();
+            document.getElementById("utc-time").innerText = `UTC ${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
+
+            // Update Countdowns for Roster
+            myRoster.forEach(route => {
+                const timerElem = document.getElementById(`timer-${route.id}`);
+                if (!timerElem) return;
+
+                const diff = route.depTimestamp - Date.now();
+                if (diff <= 0) {
+                    timerElem.innerText = "BOARDING NOW";
+                } else {
+                    const mins = Math.floor((diff / (1000 * 60)) % 60);
+                    const hrs = Math.floor(diff / (1000 * 60 * 60));
+                    timerElem.innerText = `T-${hrs}h ${mins}m`;
+                }
+            });
+        }, 1000);
+
+        // Initial render
+        renderRoutes();
+    </script>
+</body>
+</html>
