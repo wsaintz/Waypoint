@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flight Roster EFB</title>
+    <title>AeroRoster Dispatch</title>
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --bg-color: #0a0a0c;
-            --card-bg: rgba(25, 25, 35, 0.6);
-            --border-color: rgba(255, 255, 255, 0.08);
+            --card-bg: rgba(25, 25, 35, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
             --accent-yellow: #f5c518;
+            --accent-blue: #38bdf8;
             --text-main: #f0f0f5;
             --text-muted: #8e8e99;
         }
@@ -24,8 +27,8 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 20px;
-            max-width: 500px;
+            padding: 15px;
+            max-width: 480px;
             margin: 0 auto;
         }
 
@@ -33,54 +36,121 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         h1 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             letter-spacing: 0.5px;
             font-weight: 600;
         }
 
-        .search-box {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            margin-bottom: 20px;
-            outline: none;
-            backdrop-filter: blur(10px);
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .search-box:focus {
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-yellow);
+            border-color: var(--accent-yellow);
+            background: rgba(245, 197, 24, 0.05);
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
             border-color: var(--accent-yellow);
         }
 
-        section {
-            margin-bottom: 25px;
+        .row {
+            display: flex;
+            gap: 10px;
         }
 
-        h2 {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
+        .row .form-group {
+            flex: 1;
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--accent-yellow);
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        #map {
+            width: 100%;
+            height: 200px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
         }
 
         .flight-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
-            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .flight-header {
@@ -92,8 +162,8 @@
         .airline-tag {
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 3px 7px;
+            border-radius: 5px;
             background: rgba(245, 197, 24, 0.15);
             color: var(--accent-yellow);
         }
@@ -105,65 +175,17 @@
         }
 
         .airport-code {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
         }
 
-        .flight-path-line {
-            flex-grow: 1;
-            height: 1px;
-            background: var(--border-color);
-            margin: 0 15px;
-            position: relative;
-        }
-
-        .flight-path-line::after {
-            content: "✈";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            background: var(--bg-color);
-            padding: 0 4px;
-        }
-
-        .flight-details {
+        .waypoint-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px dashed var(--border-color);
+            padding: 8px;
+            border-radius: 8px;
             font-size: 0.8rem;
             color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .btn {
-            background: var(--text-main);
-            color: var(--bg-color);
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            text-align: center;
-        }
-
-        .btn:active {
-            opacity: 0.8;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-        }
-
-        .timer-badge {
-            font-variant-numeric: tabular-nums;
-            color: var(--accent-yellow);
-            font-weight: 600;
         }
 
         .empty-state {
@@ -179,149 +201,217 @@
 <body>
 
     <header>
-        <h1>FLIGHT ROSTER</h1>
-        <div style="font-size: 0.8rem; color: var(--text-muted);" id="utc-time">UTC --:--</div>
+        <h1>DISPATCH HQ</h1>
+        <div style="font-size: 0.75rem; color: var(--text-muted);" id="utc-clock">UTC --:--</div>
     </header>
 
-    <input type="text" id="searchInput" class="search-box" placeholder="Search airline or route (e.g., Spirit, Delta)..." onkeyup="filterFlights()">
+    <div class="tabs">
+        <div class="tab-btn active" onclick="switchTab('roster')">My Roster</div>
+        <div class="tab-btn" onclick="switchTab('create')">+ Create Flight</div>
+    </div>
 
-    <section>
-        <h2>My Roster</h2>
+    <!-- TAB 1: MY ROSTER -->
+    <div id="rosterPanel" class="panel active">
         <div id="myRosterContainer">
-            <div class="empty-state">No flights added to roster yet. Pick one below.</div>
+            <div class="empty-state">No flights generated yet. Tap "+ Create Flight" to build one.</div>
         </div>
-    </section>
+    </div>
 
-    <section>
-        <h2>Available Routes</h2>
-        <div id="routeListContainer">
-            <!-- Dynamic Routes injected via JS -->
+    <!-- TAB 2: CREATE FLIGHT -->
+    <div id="createPanel" class="panel">
+        <div id="map"></div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>Airline / Callsign</label>
+                <input type="text" id="airlineInput" placeholder="e.g., Spirit, DL">
+            </div>
+            <div class="form-group">
+                <label>Flight Number</label>
+                <input type="text" id="flightNoInput" placeholder="e.g., 2800">
+            </div>
         </div>
-    </section>
 
+        <div class="row">
+            <div class="form-group">
+                <label>Departure ICAO</label>
+                <input type="text" id="depInput" placeholder="e.g., KCLT" maxlength="4" style="text-transform: uppercase;" oninput="previewAirports()">
+            </div>
+            <div class="form-group">
+                <label>Arrival ICAO</label>
+                <input type="text" id="arrInput" placeholder="e.g., KLGA" maxlength="4" style="text-transform: uppercase;" oninput="previewAirports()">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Aircraft Type</label>
+            <select id="aircraftInput">
+                <option value="Airbus A320neo">Airbus A320neo</option>
+                <option value="Boeing 737-900">Boeing 737-900</option>
+                <option value="Boeing 787-10">Boeing 787-10</option>
+                <option value="Airbus A380">Airbus A380</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Route Waypoints (Safe Add)</label>
+            <div class="row">
+                <input type="text" id="waypointInput" placeholder="Waypoint (e.g. ELBEG)" style="text-transform: uppercase;">
+                <button type="button" class="btn" style="margin-top:0; width: 100px;" onclick="addWaypoint()">Add</button>
+            </div>
+            <div id="waypointListDisplay" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-blue);">No intermediate waypoints added.</div>
+        </div>
+
+        <button class="btn" onclick="generateFlightPlan()">Generate Flight Plan</button>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Sample flight data pool
-        const allRoutes = [
-            { id: 1, airline: "Spirit Airlines", flightNo: "NK2800", dep: "KCLT", arr: "KLGA", aircraft: "Airbus A320neo", duration: "1h 03m", depTimestamp: Date.now() + 1000 * 60 * 18 },
-            { id: 2, airline: "Delta Air Lines", flightNo: "DL1422", dep: "KATL", arr: "KMIA", aircraft: "Boeing 737-900", duration: "1h 45m", depTimestamp: Date.now() + 1000 * 60 * 45 },
-            { id: 3, airline: "Spirit Airlines", flightNo: "NK807", dep: "KFLL", arr: "SKBO", aircraft: "Airbus A320neo", duration: "3h 20m", depTimestamp: Date.now() + 1000 * 60 * 120 },
-            { id: 4, airline: "United Airlines", flightNo: "UA452", dep: "KORD", arr: "KLAX", aircraft: "Boeing 787-10", duration: "4h 10m", depTimestamp: Date.now() + 1000 * 60 * 200 },
-            { id: 5, airline: "Lufthansa", flightNo: "LH400", dep: "EDDF", arr: "KJFK", aircraft: "Airbus A380", duration: "8h 15m", depTimestamp: Date.now() + 1000 * 60 * 350 }
-        ];
+        // Mock database of common airport coordinates for map highlighting
+        const airportCoords = {
+            "KCLT": [35.214, -80.943],
+            "KLGA": [40.777, -73.872],
+            "KATL": [33.640, -84.427],
+            "KMIA": [25.795, -80.290],
+            "KFLL": [26.072, -80.152],
+            "SKBO": [4.701, -74.146],
+            "EDDF": [50.033, 8.570],
+            "KJFK": [40.641, -73.778],
+            "KORD": [41.974, -87.907],
+            "KLAX": [33.942, -118.408],
+            "LFSB": [47.590, 7.529],
+            "EDDM": [48.353, 11.786]
+        };
 
+        let currentWaypoints = [];
         let myRoster = [];
 
-        function renderRoutes(filter = "") {
-            const container = document.getElementById("routeListContainer");
-            container.innerHTML = "";
+        // Initialize Map
+        const map = L.map('map', { zoomControl: false }).setView([38, -95], 3);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
 
-            const filtered = allRoutes.filter(r => 
-                r.airline.toLowerCase().includes(filter.toLowerCase()) || 
-                r.dep.toLowerCase().includes(filter.toLowerCase()) || 
-                r.arr.toLowerCase().includes(filter.toLowerCase())
-            );
+        let depMarker = null;
+        let arrMarker = null;
+        let routePolyline = null;
 
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="empty-state">No matching airlines or routes found.</div>`;
-                return;
-            }
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-            filtered.forEach(route => {
-                const card = document.createElement("div");
-                card.className = "flight-card";
-                card.innerHTML = `
-                    <div class="flight-header">
-                        <span class="airline-tag">${route.airline} (${route.flightNo})</span>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">${route.aircraft}</span>
-                    </div>
-                    <div class="route-info">
-                        <span class="airport-code">${route.dep}</span>
-                        <div class="flight-path-line"></div>
-                        <span class="airport-code">${route.arr}</span>
-                    </div>
-                    <div class="flight-details">
-                        <span>Est. Duration: ${route.duration}</span>
-                    </div>
-                    <button class="btn" onclick="addToRoster(${route.id})">Add to My Roster</button>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function addToRoster(id) {
-            const route = allRoutes.find(r => r.id === id);
-            if (!myRoster.some(r => r.id === id)) {
-                myRoster.push(route);
-                renderRoster();
+            if (tab === 'roster') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('rosterPanel').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('createPanel').classList.add('active');
+                setTimeout(() => { map.invalidateSize(); }, 200);
             }
         }
 
-        function removeFromRoster(id) {
-            myRoster = myRoster.filter(r => r.id !== id);
+        function previewAirports() {
+            const dep = document.getElementById('depInput').value.toUpperCase().trim();
+            const arr = document.getElementById('arrInput').value.toUpperCase().trim();
+
+            if (depMarker) map.removeLayer(depMarker);
+            if (arrMarker) map.removeLayer(arrMarker);
+            if (routePolyline) map.removeLayer(routePolyline);
+
+            let latlngs = [];
+
+            if (airportCoords[dep]) {
+                depMarker = L.circleMarker(airportCoords[dep], { radius: 8, color: '#f5c518', fillOpacity: 0.9 }).addTo(map).bindPopup("Dep: " + dep);
+                latlngs.push(airportCoords[dep]);
+            }
+
+            if (airportCoords[arr]) {
+                arrMarker = L.circleMarker(airportCoords[arr], { radius: 8, color: '#38bdf8', fillOpacity: 0.9 }).addTo(map).bindPopup("Arr: " + arr);
+                latlngs.push(airportCoords[arr]);
+            }
+
+            if (latlngs.length === 2) {
+                routePolyline = L.polyline(latlngs, { color: '#f5c518', dashArray: '4, 4', weight: 2 }).addTo(map);
+                map.fitBounds(routePolyline.getBounds(), { padding: [30, 30] });
+            }
+        }
+
+        function addWaypoint() {
+            const wpInput = document.getElementById('waypointInput');
+            const val = wpInput.value.toUpperCase().trim();
+            if (val && !currentWaypoints.includes(val)) {
+                currentWaypoints.push(val);
+                document.getElementById('waypointListDisplay').innerText = "Waypoints: " + currentWaypoints.join(' -> ');
+                wpInput.value = "";
+            }
+        }
+
+        function generateFlightPlan() {
+            const airline = document.getElementById('airlineInput').value || "CUSTOM";
+            const flightNo = document.getElementById('flightNoInput').value || "000";
+            const dep = document.getElementById('depInput').value.toUpperCase() || "KCLT";
+            const arr = document.getElementById('arrInput').value.toUpperCase() || "KLGA";
+            const aircraft = document.getElementById('aircraftInput').value;
+
+            const newFlight = {
+                id: Date.now(),
+                airline,
+                flightNo: airline + flightNo,
+                dep,
+                arr,
+                aircraft,
+                waypoints: [...currentWaypoints]
+            };
+
+            myRoster.push(newFlight);
+            currentWaypoints = [];
+            document.getElementById('waypointListDisplay').innerText = "No intermediate waypoints added.";
+            
             renderRoster();
+            switchTab('roster');
         }
 
         function renderRoster() {
-            const container = document.getElementById("myRosterContainer");
+            const container = document.getElementById('myRosterContainer');
             if (myRoster.length === 0) {
-                container.innerHTML = `<div class="empty-state">No flights added to roster yet. Pick one below.</div>`;
+                container.innerHTML = `<div class="empty-state">No flights generated yet. Tap "+ Create Flight" to build one.</div>`;
                 return;
             }
 
             container.innerHTML = "";
-            myRoster.forEach(route => {
-                const card = document.createElement("div");
-                card.className = "flight-card";
-                card.style.borderColor = "var(--accent-yellow)";
+            myRoster.forEach(flight => {
+                const card = document.createElement('div');
+                card.className = 'flight-card';
                 card.innerHTML = `
                     <div class="flight-header">
-                        <span class="airline-tag">${route.airline} (${route.flightNo})</span>
-                        <span class="timer-badge" id="timer-${route.id}">Calculating...</span>
+                        <span class="airline-tag">${flight.airline} (${flight.flightNo})</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${flight.aircraft}</span>
                     </div>
                     <div class="route-info">
-                        <span class="airport-code">${route.dep}</span>
-                        <div class="flight-path-line"></div>
-                        <span class="airport-code">${route.arr}</span>
+                        <span class="airport-code">${flight.dep}</span>
+                        <div style="flex-grow:1; height:1px; background:var(--border-color); margin:0 15px; position:relative;">
+                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.7rem; background:var(--bg-color); padding:0 5px; color:var(--text-muted);">✈</span>
+                        </div>
+                        <span class="airport-code">${flight.arr}</span>
                     </div>
-                    <div class="flight-details">
-                        <span>${route.aircraft}</span>
-                        <span>${route.duration}</span>
-                    </div>
-                    <button class="btn btn-outline" onclick="removeFromRoster(${route.id})">Remove from Roster</button>
+                    ${flight.waypoints.length > 0 ? `<div class="waypoint-box">Via: ${flight.waypoints.join(' -> ')}</div>` : ''}
+                    <button class="btn btn-outline" onclick="removeFlight(${flight.id})">Delete Flight</button>
                 `;
                 container.appendChild(card);
             });
         }
 
-        function filterFlights() {
-            const query = document.getElementById("searchInput").value;
-            renderRoutes(query);
+        function removeFlight(id) {
+            myRoster = myRoster.filter(f => f.id !== id);
+            renderRoster();
         }
 
-        // Live Countdown and UTC Clock update loop
+        // Live UTC Clock
         setInterval(() => {
-            // Update UTC Clock
             const now = new Date();
-            document.getElementById("utc-time").innerText = `UTC ${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
-
-            // Update Countdowns for Roster
-            myRoster.forEach(route => {
-                const timerElem = document.getElementById(`timer-${route.id}`);
-                if (!timerElem) return;
-
-                const diff = route.depTimestamp - Date.now();
-                if (diff <= 0) {
-                    timerElem.innerText = "BOARDING NOW";
-                } else {
-                    const mins = Math.floor((diff / (1000 * 60)) % 60);
-                    const hrs = Math.floor(diff / (1000 * 60 * 60));
-                    timerElem.innerText = `T-${hrs}h ${mins}m`;
-                }
-            });
+            document.getElementById('utc-clock').innerText = `UTC ${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
         }, 1000);
-
-        // Initial render
-        renderRoutes();
     </script>
 </body>
 </html>
