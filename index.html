@@ -13,6 +13,7 @@
             --border-color: rgba(255, 255, 255, 0.09);
             --accent-yellow: #f5c518;
             --accent-blue: #38bdf8;
+            --accent-red: #ef4444;
             --text-main: #f4f4f6;
             --text-muted: #9494a0;
         }
@@ -97,7 +98,7 @@
             display: block;
         }
 
-        /* Big Immersive Map Container */
+        /* Map Container */
         #map-container {
             position: relative;
             margin-bottom: 16px;
@@ -119,7 +120,7 @@
             transform: translateX(-50%);
             background: rgba(10, 10, 14, 0.85);
             border: 1px solid var(--border-color);
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.7rem;
             color: var(--accent-blue);
@@ -203,6 +204,48 @@
             border: 1px solid var(--border-color);
             color: var(--text-main);
             margin-top: 8px;
+        }
+
+        /* Waypoint Management List */
+        .waypoint-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 140px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .waypoint-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .waypoint-info {
+            color: var(--accent-blue);
+            font-family: monospace;
+        }
+
+        .delete-wp-btn {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .delete-wp-btn:active {
+            background: var(--accent-red);
+            color: #fff;
         }
 
         .flight-card {
@@ -295,7 +338,7 @@
         <!-- Big Interactive Map -->
         <div id="map-container">
             <div id="map"></div>
-            <div class="map-instruction">💡 Click map to add route waypoints safely</div>
+            <div class="map-instruction">🗺️ Click map to add route waypoints precisely</div>
         </div>
 
         <div class="form-section">
@@ -348,12 +391,10 @@
             </div>
 
             <div class="form-group" style="margin-top: 12px;">
-                <label>Custom Waypoints (Click Map or Type)</label>
-                <div class="row">
-                    <input type="text" id="waypointInput" placeholder="Waypoint Name" style="text-transform: uppercase;">
-                    <button type="button" class="btn" style="margin-top:0; width: 90px;" onclick="addTypedWaypoint()">Add</button>
+                <label>Active Route Waypoints (Click Map)</label>
+                <div id="waypointListContainer" class="waypoint-list-container">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 10px;">No map waypoints added yet. Click anywhere on the map.</div>
                 </div>
-                <div id="waypointListDisplay" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-blue);">No intermediate waypoints added.</div>
             </div>
         </div>
 
@@ -364,10 +405,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let myRoster = [];
-        let customWaypoints = [];
+        let waypoints = []; // Stores objects: { id, name, lat, lng, marker }
         let depCoords = null;
         let arrCoords = null;
-        let mapWaypointsCoords = [];
 
         // Initialize Map
         const map = L.map('map', { zoomControl: false }).setView([42.5, 21.1], 5);
@@ -378,25 +418,24 @@
         let depMarker = null;
         let arrMarker = null;
         let routePolyline = null;
-        let mapWaypointMarkers = [];
 
-        // Click map to safely add custom waypoint coordinates
+        // Click map to add precise waypoint
         map.on('click', function(e) {
-            const lat = e.latlng.lat.toFixed(2);
-            const lng = e.latlng.lng.toFixed(2);
-            const wpName = `WP_${customWaypoints.length + 1}`;
-            
-            customWaypoints.push({ name: wpName, lat: e.latlng.lat, lng: e.latlng.lng });
-            
-            const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
-                radius: 5,
+            const wpId = Date.now();
+            const wpName = `WP${waypoints.length + 1}`;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6,
                 color: '#38bdf8',
                 fillColor: '#38bdf8',
-                fillOpacity: 0.8
-            }).addTo(map).bindPopup(`Waypoint: ${wpName}`);
+                fillOpacity: 0.9
+            }).addTo(map).bindPopup(`${wpName} (${lat.toFixed(2)}, ${lng.toFixed(2)})`);
+
+            waypoints.push({ id: wpId, name: wpName, lat, lng, marker });
             
-            mapWaypointMarkers.push(marker);
-            updateWaypointDisplay();
+            updateWaypointUI();
             updatePolyline();
         });
 
@@ -414,7 +453,7 @@
             }
         }
 
-        // Universal Airport Lookup via Free Aviation API (OurAirports database)
+        // Universal Airport Lookup via Free Aviation API
         async function lookupAirport(type) {
             const inputElem = document.getElementById(type + 'Input');
             const statusElem = document.getElementById(type + 'Status');
@@ -454,10 +493,42 @@
                     updatePolyline();
                 } else {
                     statusElem.innerText = "Airport not found";
-                    statusElem.style.color = "#ef4444";
+                    statusElem.style.color = "var(--accent-red)";
                 }
             } catch (err) {
                 statusElem.innerText = "Lookup error";
+            }
+        }
+
+        function updateWaypointUI() {
+            const container = document.getElementById('waypointListContainer');
+            if (waypoints.length === 0) {
+                container.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 10px;">No map waypoints added yet. Click anywhere on the map.</div>`;
+                return;
+            }
+
+            container.innerHTML = "";
+            waypoints.forEach((wp, index) => {
+                // Re-label sequentially incase one was deleted
+                wp.name = `WP${index + 1}`;
+                
+                const item = document.createElement('div');
+                item.className = 'waypoint-item';
+                item.innerHTML = `
+                    <span class="waypoint-info"><strong>${wp.name}</strong> (${wp.lat.toFixed(2)}, ${wp.lng.toFixed(2)})</span>
+                    <button type="button" class="delete-wp-btn" onclick="removeWaypoint(${wp.id})">Remove</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function removeWaypoint(id) {
+            const wp = waypoints.find(w => w.id === id);
+            if (wp) {
+                map.removeLayer(wp.marker);
+                waypoints = waypoints.filter(w => w.id !== id);
+                updateWaypointUI();
+                updatePolyline();
             }
         }
 
@@ -466,7 +537,7 @@
 
             let points = [];
             if (depCoords) points.push(depCoords);
-            customWaypoints.forEach(wp => points.push([wp.lat, wp.lng]));
+            waypoints.forEach(wp => points.push([wp.lat, wp.lng]));
             if (arrCoords) points.push(arrCoords);
 
             if (points.length >= 2) {
@@ -474,25 +545,6 @@
                 map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
             } else if (depCoords) {
                 map.setView(depCoords, 7);
-            }
-        }
-
-        function addTypedWaypoint() {
-            const input = document.getElementById('waypointInput');
-            const val = input.value.toUpperCase().trim();
-            if (val) {
-                customWaypoints.push({ name: val, lat: null, lng: null });
-                updateWaypointDisplay();
-                input.value = "";
-            }
-        }
-
-        function updateWaypointDisplay() {
-            const display = document.getElementById('waypointListDisplay');
-            if (customWaypoints.length === 0) {
-                display.innerText = "No intermediate waypoints added.";
-            } else {
-                display.innerText = "Waypoints: " + customWaypoints.map(w => w.name).join(' → ');
             }
         }
 
@@ -510,22 +562,21 @@
                 dep,
                 arr,
                 aircraft,
-                waypoints: customWaypoints.map(w => w.name)
+                waypoints: waypoints.map(w => w.name)
             };
 
             myRoster.push(newFlight);
 
-            // Reset Form
-            customWaypoints = [];
+            // Reset Form & Clear Map Markers
+            waypoints.forEach(w => map.removeLayer(w.marker));
+            waypoints = [];
             depCoords = null;
             arrCoords = null;
             if (depMarker) map.removeLayer(depMarker);
             if (arrMarker) map.removeLayer(arrMarker);
             if (routePolyline) map.removeLayer(routePolyline);
-            mapWaypointMarkers.forEach(m => map.removeLayer(m));
-            mapWaypointMarkers = [];
-            updateWaypointDisplay();
             
+            updateWaypointUI();
             document.getElementById('depInput').value = "";
             document.getElementById('arrInput').value = "";
             document.getElementById('depStatus').innerText = "";
