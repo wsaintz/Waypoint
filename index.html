@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroRoster Dispatch</title>
-    <!-- Leaflet CSS for Map -->
+    <title>Waypoint™ - Flight Dispatch EFB</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --bg-color: #0a0a0c;
-            --card-bg: rgba(25, 25, 35, 0.7);
-            --border-color: rgba(255, 255, 255, 0.1);
+            --bg-color: #08080a;
+            --card-bg: rgba(18, 18, 26, 0.75);
+            --border-color: rgba(255, 255, 255, 0.09);
             --accent-yellow: #f5c518;
             --accent-blue: #38bdf8;
-            --text-main: #f0f0f5;
-            --text-muted: #8e8e99;
+            --text-main: #f4f4f6;
+            --text-muted: #9494a0;
         }
 
         * {
@@ -27,8 +27,8 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 15px;
-            max-width: 480px;
+            padding: 16px;
+            max-width: 520px;
             margin: 0 auto;
         }
 
@@ -36,38 +36,57 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         h1 {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             letter-spacing: 0.5px;
-            font-weight: 600;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        h1 span {
+            font-size: 0.65rem;
+            vertical-align: super;
+            color: var(--accent-yellow);
+        }
+
+        .utc-badge {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
         }
 
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 8px;
+            margin-bottom: 16px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: 12px;
             color: var(--text-muted);
             font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
             text-align: center;
+            transition: all 0.2s ease;
         }
 
         .tab-btn.active {
             color: var(--accent-yellow);
             border-color: var(--accent-yellow);
-            background: rgba(245, 197, 24, 0.05);
+            background: rgba(245, 197, 24, 0.06);
         }
 
         .panel {
@@ -78,28 +97,75 @@
             display: block;
         }
 
+        /* Big Immersive Map Container */
+        #map-container {
+            position: relative;
+            margin-bottom: 16px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        #map {
+            width: 100%;
+            height: 310px;
+            background: #111;
+        }
+
+        .map-instruction {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 14, 0.85);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .form-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(12px);
+        }
+
         .form-group {
             margin-bottom: 12px;
         }
 
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
         label {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             color: var(--text-muted);
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
 
         input, select {
             width: 100%;
-            padding: 10px 14px;
-            background: var(--card-bg);
+            padding: 11px 14px;
+            background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border-color);
             border-radius: 10px;
             color: var(--text-main);
             font-size: 0.9rem;
             outline: none;
+            transition: border-color 0.2s;
         }
 
         input:focus, select:focus {
@@ -120,37 +186,35 @@
             background: var(--accent-yellow);
             color: #000;
             border: none;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 13px;
+            border-radius: 12px;
             font-weight: 700;
             font-size: 0.9rem;
             cursor: pointer;
-            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.85;
         }
 
         .btn-outline {
             background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-        }
-
-        #map {
-            width: 100%;
-            height: 200px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 15px;
+            margin-top: 8px;
         }
 
         .flight-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 14px;
-            margin-bottom: 10px;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+            backdrop-filter: blur(10px);
         }
 
         .flight-header {
@@ -162,8 +226,8 @@
         .airline-tag {
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 3px 7px;
-            border-radius: 5px;
+            padding: 4px 8px;
+            border-radius: 6px;
             background: rgba(245, 197, 24, 0.15);
             color: var(--accent-yellow);
         }
@@ -175,34 +239,42 @@
         }
 
         .airport-code {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         .waypoint-box {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             border: 1px dashed var(--border-color);
-            padding: 8px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 10px;
             font-size: 0.8rem;
-            color: var(--text-muted);
+            color: var(--accent-blue);
         }
 
         .empty-state {
             color: var(--text-muted);
             font-size: 0.85rem;
             text-align: center;
-            padding: 20px;
+            padding: 30px 20px;
             border: 1px dashed var(--border-color);
-            border-radius: 12px;
+            border-radius: 16px;
+            background: var(--card-bg);
+        }
+
+        .status-text {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>DISPATCH HQ</h1>
-        <div style="font-size: 0.75rem; color: var(--text-muted);" id="utc-clock">UTC --:--</div>
+        <h1>Waypoint<span>™</span></h1>
+        <div class="utc-badge" id="utc-clock">UTC --:--</div>
     </header>
 
     <div class="tabs">
@@ -213,82 +285,92 @@
     <!-- TAB 1: MY ROSTER -->
     <div id="rosterPanel" class="panel active">
         <div id="myRosterContainer">
-            <div class="empty-state">No flights generated yet. Tap "+ Create Flight" to build one.</div>
+            <div class="empty-state">Your roster is currently empty.<br>Tap "+ Create Flight" to plan your first route.</div>
         </div>
     </div>
 
     <!-- TAB 2: CREATE FLIGHT -->
     <div id="createPanel" class="panel">
-        <div id="map"></div>
-
-        <div class="row">
-            <div class="form-group">
-                <label>Airline / Callsign</label>
-                <input type="text" id="airlineInput" placeholder="e.g., Spirit, DL">
-            </div>
-            <div class="form-group">
-                <label>Flight Number</label>
-                <input type="text" id="flightNoInput" placeholder="e.g., 2800">
-            </div>
+        
+        <!-- Big Interactive Map -->
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="map-instruction">💡 Click map to add route waypoints safely</div>
         </div>
 
-        <div class="row">
-            <div class="form-group">
-                <label>Departure ICAO</label>
-                <input type="text" id="depInput" placeholder="e.g., KCLT" maxlength="4" style="text-transform: uppercase;" oninput="previewAirports()">
-            </div>
-            <div class="form-group">
-                <label>Arrival ICAO</label>
-                <input type="text" id="arrInput" placeholder="e.g., KLGA" maxlength="4" style="text-transform: uppercase;" oninput="previewAirports()">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Aircraft Type</label>
-            <select id="aircraftInput">
-                <option value="Airbus A320neo">Airbus A320neo</option>
-                <option value="Boeing 737-900">Boeing 737-900</option>
-                <option value="Boeing 787-10">Boeing 787-10</option>
-                <option value="Airbus A380">Airbus A380</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Route Waypoints (Safe Add)</label>
+        <div class="form-section">
             <div class="row">
-                <input type="text" id="waypointInput" placeholder="Waypoint (e.g. ELBEG)" style="text-transform: uppercase;">
-                <button type="button" class="btn" style="margin-top:0; width: 100px;" onclick="addWaypoint()">Add</button>
+                <div class="form-group">
+                    <label>Airline / Callsign</label>
+                    <input type="text" id="airlineInput" placeholder="e.g., DL, Spirit">
+                </div>
+                <div class="form-group">
+                    <label>Flight Number</label>
+                    <input type="text" id="flightNoInput" placeholder="e.g., 2800">
+                </div>
             </div>
-            <div id="waypointListDisplay" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-blue);">No intermediate waypoints added.</div>
+
+            <div class="row" style="margin-top: 12px;">
+                <div class="form-group">
+                    <label>Departure ICAO</label>
+                    <input type="text" id="depInput" placeholder="e.g., BKPR" maxlength="4" style="text-transform: uppercase;" oninput="lookupAirport('dep')">
+                    <div id="depStatus" class="status-text"></div>
+                </div>
+                <div class="form-group">
+                    <label>Arrival ICAO</label>
+                    <input type="text" id="arrInput" placeholder="e.g., LSZH" maxlength="4" style="text-transform: uppercase;" oninput="lookupAirport('arr')">
+                    <div id="arrStatus" class="status-text"></div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+                <label>Aircraft Type</label>
+                <select id="aircraftInput">
+                    <optgroup label="Airbus">
+                        <option value="Airbus A320neo">Airbus A320neo</option>
+                        <option value="Airbus A321neo">Airbus A321neo</option>
+                        <option value="Airbus A330-900neo">Airbus A330-900neo</option>
+                        <option value="Airbus A350-900">Airbus A350-900</option>
+                        <option value="Airbus A380">Airbus A380</option>
+                    </optgroup>
+                    <optgroup label="Boeing">
+                        <option value="Boeing 737-800">Boeing 737-800</option>
+                        <option value="Boeing 737 MAX 8">Boeing 737 MAX 8</option>
+                        <option value="Boeing 777-300ER">Boeing 777-300ER</option>
+                        <option value="Boeing 787-10">Boeing 787-10</option>
+                        <option value="Boeing 747-8">Boeing 747-8</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="Embraer E195-E2">Embraer E195-E2</option>
+                        <option value="ATR 72-600">ATR 72-600</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+                <label>Custom Waypoints (Click Map or Type)</label>
+                <div class="row">
+                    <input type="text" id="waypointInput" placeholder="Waypoint Name" style="text-transform: uppercase;">
+                    <button type="button" class="btn" style="margin-top:0; width: 90px;" onclick="addTypedWaypoint()">Add</button>
+                </div>
+                <div id="waypointListDisplay" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-blue);">No intermediate waypoints added.</div>
+            </div>
         </div>
 
-        <button class="btn" onclick="generateFlightPlan()">Generate Flight Plan</button>
+        <button class="btn" onclick="generateFlightPlan()">Save to My Roster</button>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Mock database of common airport coordinates for map highlighting
-        const airportCoords = {
-            "KCLT": [35.214, -80.943],
-            "KLGA": [40.777, -73.872],
-            "KATL": [33.640, -84.427],
-            "KMIA": [25.795, -80.290],
-            "KFLL": [26.072, -80.152],
-            "SKBO": [4.701, -74.146],
-            "EDDF": [50.033, 8.570],
-            "KJFK": [40.641, -73.778],
-            "KORD": [41.974, -87.907],
-            "KLAX": [33.942, -118.408],
-            "LFSB": [47.590, 7.529],
-            "EDDM": [48.353, 11.786]
-        };
-
-        let currentWaypoints = [];
         let myRoster = [];
+        let customWaypoints = [];
+        let depCoords = null;
+        let arrCoords = null;
+        let mapWaypointsCoords = [];
 
         // Initialize Map
-        const map = L.map('map', { zoomControl: false }).setView([38, -95], 3);
+        const map = L.map('map', { zoomControl: false }).setView([42.5, 21.1], 5);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19
         }).addTo(map);
@@ -296,6 +378,27 @@
         let depMarker = null;
         let arrMarker = null;
         let routePolyline = null;
+        let mapWaypointMarkers = [];
+
+        // Click map to safely add custom waypoint coordinates
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(2);
+            const lng = e.latlng.lng.toFixed(2);
+            const wpName = `WP_${customWaypoints.length + 1}`;
+            
+            customWaypoints.push({ name: wpName, lat: e.latlng.lat, lng: e.latlng.lng });
+            
+            const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
+                radius: 5,
+                color: '#38bdf8',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.8
+            }).addTo(map).bindPopup(`Waypoint: ${wpName}`);
+            
+            mapWaypointMarkers.push(marker);
+            updateWaypointDisplay();
+            updatePolyline();
+        });
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -307,51 +410,97 @@
             } else {
                 document.querySelectorAll('.tab-btn')[1].classList.add('active');
                 document.getElementById('createPanel').classList.add('active');
-                setTimeout(() => { map.invalidateSize(); }, 200);
+                setTimeout(() => { map.invalidateSize(); }, 250);
             }
         }
 
-        function previewAirports() {
-            const dep = document.getElementById('depInput').value.toUpperCase().trim();
-            const arr = document.getElementById('arrInput').value.toUpperCase().trim();
+        // Universal Airport Lookup via Free Aviation API (OurAirports database)
+        async function lookupAirport(type) {
+            const inputElem = document.getElementById(type + 'Input');
+            const statusElem = document.getElementById(type + 'Status');
+            const icao = inputElem.value.toUpperCase().trim();
 
-            if (depMarker) map.removeLayer(depMarker);
-            if (arrMarker) map.removeLayer(arrMarker);
+            if (icao.length < 3) {
+                statusElem.innerText = "";
+                return;
+            }
+
+            statusElem.innerText = "Searching global database...";
+
+            try {
+                const response = await fetch(`https://api.aviationapi.com/v1/airports?apt=${icao}`);
+                const data = await response.json();
+
+                if (data && data[icao] && data[icao].length > 0) {
+                    const apt = data[icao][0];
+                    const lat = parseFloat(apt.lat);
+                    const lon = parseFloat(apt.lon);
+
+                    statusElem.innerText = `✓ ${apt.facility_name || icao}`;
+                    statusElem.style.color = "var(--accent-yellow)";
+
+                    if (type === 'dep') {
+                        depCoords = [lat, lon];
+                        if (depMarker) map.removeLayer(depMarker);
+                        depMarker = L.circleMarker(depCoords, { radius: 9, color: '#f5c518', fillOpacity: 0.9 })
+                            .addTo(map).bindPopup(`Departure: ${icao}`);
+                    } else {
+                        arrCoords = [lat, lon];
+                        if (arrMarker) map.removeLayer(arrMarker);
+                        arrMarker = L.circleMarker(arrCoords, { radius: 9, color: '#38bdf8', fillOpacity: 0.9 })
+                            .addTo(map).bindPopup(`Arrival: ${icao}`);
+                    }
+
+                    updatePolyline();
+                } else {
+                    statusElem.innerText = "Airport not found";
+                    statusElem.style.color = "#ef4444";
+                }
+            } catch (err) {
+                statusElem.innerText = "Lookup error";
+            }
+        }
+
+        function updatePolyline() {
             if (routePolyline) map.removeLayer(routePolyline);
 
-            let latlngs = [];
+            let points = [];
+            if (depCoords) points.push(depCoords);
+            customWaypoints.forEach(wp => points.push([wp.lat, wp.lng]));
+            if (arrCoords) points.push(arrCoords);
 
-            if (airportCoords[dep]) {
-                depMarker = L.circleMarker(airportCoords[dep], { radius: 8, color: '#f5c518', fillOpacity: 0.9 }).addTo(map).bindPopup("Dep: " + dep);
-                latlngs.push(airportCoords[dep]);
-            }
-
-            if (airportCoords[arr]) {
-                arrMarker = L.circleMarker(airportCoords[arr], { radius: 8, color: '#38bdf8', fillOpacity: 0.9 }).addTo(map).bindPopup("Arr: " + arr);
-                latlngs.push(airportCoords[arr]);
-            }
-
-            if (latlngs.length === 2) {
-                routePolyline = L.polyline(latlngs, { color: '#f5c518', dashArray: '4, 4', weight: 2 }).addTo(map);
-                map.fitBounds(routePolyline.getBounds(), { padding: [30, 30] });
+            if (points.length >= 2) {
+                routePolyline = L.polyline(points, { color: '#f5c518', dashArray: '5, 5', weight: 2.5 }).addTo(map);
+                map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+            } else if (depCoords) {
+                map.setView(depCoords, 7);
             }
         }
 
-        function addWaypoint() {
-            const wpInput = document.getElementById('waypointInput');
-            const val = wpInput.value.toUpperCase().trim();
-            if (val && !currentWaypoints.includes(val)) {
-                currentWaypoints.push(val);
-                document.getElementById('waypointListDisplay').innerText = "Waypoints: " + currentWaypoints.join(' -> ');
-                wpInput.value = "";
+        function addTypedWaypoint() {
+            const input = document.getElementById('waypointInput');
+            const val = input.value.toUpperCase().trim();
+            if (val) {
+                customWaypoints.push({ name: val, lat: null, lng: null });
+                updateWaypointDisplay();
+                input.value = "";
+            }
+        }
+
+        function updateWaypointDisplay() {
+            const display = document.getElementById('waypointListDisplay');
+            if (customWaypoints.length === 0) {
+                display.innerText = "No intermediate waypoints added.";
+            } else {
+                display.innerText = "Waypoints: " + customWaypoints.map(w => w.name).join(' → ');
             }
         }
 
         function generateFlightPlan() {
-            const airline = document.getElementById('airlineInput').value || "CUSTOM";
-            const flightNo = document.getElementById('flightNoInput').value || "000";
-            const dep = document.getElementById('depInput').value.toUpperCase() || "KCLT";
-            const arr = document.getElementById('arrInput').value.toUpperCase() || "KLGA";
+            const airline = document.getElementById('airlineInput').value.trim() || "WAY";
+            const flightNo = document.getElementById('flightNoInput').value.trim() || "101";
+            const dep = document.getElementById('depInput').value.toUpperCase().trim() || "KCLT";
+            const arr = document.getElementById('arrInput').value.toUpperCase().trim() || "KLGA";
             const aircraft = document.getElementById('aircraftInput').value;
 
             const newFlight = {
@@ -361,13 +510,27 @@
                 dep,
                 arr,
                 aircraft,
-                waypoints: [...currentWaypoints]
+                waypoints: customWaypoints.map(w => w.name)
             };
 
             myRoster.push(newFlight);
-            currentWaypoints = [];
-            document.getElementById('waypointListDisplay').innerText = "No intermediate waypoints added.";
+
+            // Reset Form
+            customWaypoints = [];
+            depCoords = null;
+            arrCoords = null;
+            if (depMarker) map.removeLayer(depMarker);
+            if (arrMarker) map.removeLayer(arrMarker);
+            if (routePolyline) map.removeLayer(routePolyline);
+            mapWaypointMarkers.forEach(m => map.removeLayer(m));
+            mapWaypointMarkers = [];
+            updateWaypointDisplay();
             
+            document.getElementById('depInput').value = "";
+            document.getElementById('arrInput').value = "";
+            document.getElementById('depStatus').innerText = "";
+            document.getElementById('arrStatus').innerText = "";
+
             renderRoster();
             switchTab('roster');
         }
@@ -375,7 +538,7 @@
         function renderRoster() {
             const container = document.getElementById('myRosterContainer');
             if (myRoster.length === 0) {
-                container.innerHTML = `<div class="empty-state">No flights generated yet. Tap "+ Create Flight" to build one.</div>`;
+                container.innerHTML = `<div class="empty-state">Your roster is currently empty.<br>Tap "+ Create Flight" to plan your first route.</div>`;
                 return;
             }
 
@@ -391,12 +554,12 @@
                     <div class="route-info">
                         <span class="airport-code">${flight.dep}</span>
                         <div style="flex-grow:1; height:1px; background:var(--border-color); margin:0 15px; position:relative;">
-                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.7rem; background:var(--bg-color); padding:0 5px; color:var(--text-muted);">✈</span>
+                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.7rem; background:var(--bg-color); padding:0 6px; color:var(--text-muted);">✈</span>
                         </div>
                         <span class="airport-code">${flight.arr}</span>
                     </div>
-                    ${flight.waypoints.length > 0 ? `<div class="waypoint-box">Via: ${flight.waypoints.join(' -> ')}</div>` : ''}
-                    <button class="btn btn-outline" onclick="removeFlight(${flight.id})">Delete Flight</button>
+                    ${flight.waypoints.length > 0 ? `<div class="waypoint-box">Route: ${flight.waypoints.join(' → ')}</div>` : ''}
+                    <button class="btn btn-outline" onclick="removeFlight(${flight.id})">Remove from Roster</button>
                 `;
                 container.appendChild(card);
             });
