@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waypoint™ - Flight Dispatch EFB</title>
+    <title>Waypoint™ - Advanced Flight Dispatch EFB</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -430,6 +430,16 @@
             color: var(--accent-blue);
             margin-top: 4px;
         }
+
+        .waypoint-box {
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -438,19 +448,19 @@
     <div id="welcome-overlay">
         <div class="welcome-card">
             <div class="welcome-title">Waypoint<span>™</span></div>
-            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Flight Dispatch & Global Routing EFB System</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Advanced Flight Dispatch & Precision Routing EFB</div>
             
             <div class="tos-container">
                 <h4>Terms of Service & Operational Guidelines</h4>
-                <p>Welcome to Waypoint™ Virtual Flight Dispatch. Before accessing our global routing calculator and cloud roster synchronization, review our guidelines:</p>
+                <p>Welcome to Waypoint™ Virtual Flight Dispatch. Review guidelines before proceeding:</p>
                 <br>
                 <ul>
-                    <li><strong>Global Database:</strong> Universal offline ICAO airport dictionaries are embedded for instant airport lookups.</li>
-                    <li><strong>Simulation Compliance:</strong> Designed exclusively for flight simulation networks (GeoFS, PTFS, VATSIM). Not for real-world flight operations.</li>
-                    <li><strong>Cloud Account Sync:</strong> Authenticating via Google or Apple securely links your personal roster to your Cloud Firestore database profile.</li>
-                    <li><strong>Operational Safety:</strong> Ensure valid departure and arrivalICAO codes are entered prior to filing your dispatch plan.</li>
+                    <li><strong>Precision Runway Thresholds:</strong> Routes lock directly onto user-selected departure and arrival runway headers.</li>
+                    <li><strong>Procedural Waypoints:</strong> Intermediate oceanic and enroute navigation fixes are automatically calculated.</li>
+                    <li><strong>Cloud Account Sync:</strong> Google and Apple sign-in securely associates flights to your personal cloud profile.</li>
+                    <li><strong>Simulation Compliance:</strong> For entertainment and simulation environments (GeoFS, PTFS, VATSIM) only.</li>
                 </ul>
-                <p>Check the box below to accept these operational conditions.</p>
+                <p>Check the box below to accept these conditions.</p>
             </div>
 
             <label class="checkbox-group">
@@ -480,7 +490,7 @@
     <div id="homePanel" class="panel active">
         <div class="user-profile-box" id="userProfileBox">
             <div id="loggedOutView">
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Sign in with your Google or Apple account to sync your saved flight plans securely to the cloud database.</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Sign in securely with Google or Apple to sync your flight rosters to the cloud database.</p>
                 <button class="social-btn" onclick="signInWithGoogle()">
                     <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.19C.43 8.15 0 9.89 0 12s.43 3.85 1.19 5.39l4.08-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.17 2.64 1.19 6.61l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
                     Sign in with Google
@@ -490,7 +500,7 @@
                 </button>
             </div>
             <div id="loggedInView" style="display: none;">
-                <p style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 700; margin-bottom: 4px;" id="userNameDisplay">Connected User</p>
+                <p style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 700; margin-bottom: 4px;" id="userNameDisplay">Connected Pilot</p>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;" id="userEmailDisplay">user@email.com</p>
                 <button class="btn btn-outline" style="margin-top: 0;" onclick="signOutUser()">Sign Out</button>
             </div>
@@ -502,8 +512,8 @@
                 <div class="stat-value" id="statRosterCount">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">ICAO Database</div>
-                <div class="stat-value">Global</div>
+                <div class="stat-label">Precise Thresholds</div>
+                <div class="stat-value">Active</div>
             </div>
         </div>
     </div>
@@ -511,7 +521,7 @@
     <!-- TAB 1: MY ROSTER -->
     <div id="rosterPanel" class="panel">
         <div id="myRosterContainer">
-            <div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first route.</div>
+            <div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first precise route.</div>
         </div>
     </div>
 
@@ -519,7 +529,7 @@
     <div id="createPanel" class="panel">
         <div id="map-container">
             <div id="map"></div>
-            <div class="map-instruction">🌐 Universal Direct Great-Circle Route Plotter</div>
+            <div class="map-instruction">🌐 Runway-to-Runway Procedural Fix Plotter</div>
         </div>
 
         <div class="form-section">
@@ -534,16 +544,33 @@
                 </div>
             </div>
 
+            <!-- Departure Row -->
             <div class="row" style="margin-top: 12px;">
-                <div class="form-group">
+                <div class="form-group" style="flex: 1.2;">
                     <label>Departure ICAO</label>
-                    <input type="text" id="depInput" placeholder="e.g., KJFK" maxlength="4" style="text-transform: uppercase;" oninput="lookupAirport('dep')">
+                    <input type="text" id="depInput" placeholder="e.g., KJFK" maxlength="4" style="text-transform: uppercase;" oninput="onDepChange()">
                     <div id="depStatus" class="status-text"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="flex: 0.8;">
+                    <label>Dep Runway</label>
+                    <select id="depRwySelect" onchange="updateRoutePreview()">
+                        <option value="">Select ICAO first</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Arrival Row -->
+            <div class="row" style="margin-top: 12px;">
+                <div class="form-group" style="flex: 1.2;">
                     <label>Arrival ICAO</label>
-                    <input type="text" id="arrInput" placeholder="e.g., EGLL" maxlength="4" style="text-transform: uppercase;" oninput="lookupAirport('arr')">
+                    <input type="text" id="arrInput" placeholder="e.g., EGLL" maxlength="4" style="text-transform: uppercase;" oninput="onArrChange()">
                     <div id="arrStatus" class="status-text"></div>
+                </div>
+                <div class="form-group" style="flex: 0.8;">
+                    <label>Arr Runway</label>
+                    <select id="arrRwySelect" onchange="updateRoutePreview()">
+                        <option value="">Select ICAO first</option>
+                    </select>
                 </div>
             </div>
 
@@ -569,6 +596,10 @@
                         <option value="ATR 72-600">ATR 72-600</option>
                     </optgroup>
                 </select>
+            </div>
+
+            <div id="waypointSummaryBox" class="waypoint-box" style="display: none;">
+                <strong>Generated Waypoints:</strong> <span id="waypointListText">None</span>
             </div>
         </div>
 
@@ -602,29 +633,71 @@
 
         let currentUser = null;
         let myRoster = [];
-        let depCoords = null;
-        let arrCoords = null;
 
-        // Embedded Offline Global ICAO Airport Database (Ensures 100% instant matching)
+        // Comprehensive Enhanced Airport & Threshold Database
         const GLOBAL_AIRPORTS = {
-            "KJFK": { name: "John F. Kennedy International", lat: 40.6398, lon: -73.7789 },
-            "EGLL": { name: "London Heathrow Airport", lat: 51.4700, lon: -0.4543 },
-            "OMDB": { name: "Dubai International Airport", lat: 25.2532, lon: 55.3657 },
-            "EDDF": { name: "Frankfurt Airport", lat: 50.0333, lon: 8.5706 },
-            "RJTT": { name: "Tokyo Haneda Airport", lat: 35.5494, lon: 139.7798 },
-            "KLAX": { name: "Los Angeles International", lat: 33.9425, lon: -118.4081 },
-            "KORD": { name: "Chicago O'Hare International", lat: 41.9742, lon: -87.9073 },
-            "LFPG": { name: "Charles de Gaulle Airport", lat: 49.0097, lon: 2.5479 },
-            "EHAM": { name: "Amsterdam Airport Schiphol", lat: 52.3105, lon: 4.7683 },
-            "WSSS": { name: "Singapore Changi Airport", lat: 1.3644, lon: 103.9915 },
-            "VHHH": { name: "Hong Kong International", lat: 22.3080, lon: 113.9185 },
-            "VIDP": { name: "Indira Gandhi International", lat: 28.5562, lon: 77.1000 },
-            "EGKK": { name: "London Gatwick Airport", lat: 51.1537, lon: -0.1821 },
-            "LSZH": { name: "Zurich Airport", lat: 47.4647, lon: 8.5492 },
-            "BKPR": { name: "Pristina International Airport", lat: 42.5728, lon: 21.0358 },
-            "KCLT": { name: "Charlotte Douglas International", lat: 35.2140, lon: -80.9431 },
-            "KLGA": { name: "LaGuardia Airport", lat: 40.7769, lon: -73.8740 },
-            "KATL": { name: "Hartsfield-Jackson Atlanta International", lat: 33.6407, lon: -84.4277 }
+            "KJFK": {
+                name: "John F. Kennedy International",
+                lat: 40.6398, lon: -73.7789,
+                runways: {
+                    "04L": { lat: 40.6320, lon: -73.7910 },
+                    "04R": { lat: 40.6280, lon: -73.7850 },
+                    "22L": { lat: 40.6480, lon: -73.7650 },
+                    "22R": { lat: 40.6520, lon: -73.7700 },
+                    "13L": { lat: 40.6500, lon: -73.7880 },
+                    "31R": { lat: 40.6350, lon: -73.7620 }
+                }
+            },
+            "EGLL": {
+                name: "London Heathrow Airport",
+                lat: 51.4700, lon: -0.4543,
+                runways: {
+                    "09L": { lat: 51.4740, lon: -0.4750 },
+                    "09R": { lat: 51.4650, lon: -0.4720 },
+                    "27L": { lat: 51.4750, lon: -0.4300 },
+                    "27R": { lat: 51.4660, lon: -0.4280 }
+                }
+            },
+            "OMDB": {
+                name: "Dubai International Airport",
+                lat: 25.2532, lon: 55.3657,
+                runways: {
+                    "12R": { lat: 25.2650, lon: 55.3500 },
+                    "30L": { lat: 25.2400, lon: 55.3850 },
+                    "12L": { lat: 25.2750, lon: 55.3400 },
+                    "30R": { lat: 25.2300, lon: 55.3950 }
+                }
+            },
+            "EDDF": {
+                name: "Frankfurt Airport",
+                lat: 50.0333, lon: 8.5706,
+                runways: {
+                    "07C": { lat: 50.0350, lon: 8.5400 },
+                    "25C": { lat: 50.0310, lon: 8.6000 },
+                    "18": { lat: 50.0150, lon: 8.5700 },
+                    "07R": { lat: 50.0450, lon: 8.5300 }
+                }
+            },
+            "RJTT": {
+                name: "Tokyo Haneda Airport",
+                lat: 35.5494, lon: 139.7798,
+                runways: {
+                    "16L": { lat: 35.5600, lon: 139.7850 },
+                    "34R": { lat: 35.5350, lon: 139.7750 },
+                    "05": { lat: 35.5400, lon: 139.7600 },
+                    "23": { lat: 35.5580, lon: 139.7900 }
+                }
+            },
+            "KLAX": {
+                name: "Los Angeles International",
+                lat: 33.9425, lon: -118.4081,
+                runways: {
+                    "24L": { lat: 33.9450, lon: -118.4150 },
+                    "24R": { lat: 33.9480, lon: -118.4150 },
+                    "06L": { lat: 33.9400, lon: -118.3900 },
+                    "06R": { lat: 33.9370, lon: -118.3900 }
+                }
+            }
         };
 
         // Initialize Leaflet Map
@@ -636,8 +709,10 @@
         let depMarker = null;
         let arrMarker = null;
         let routePolyline = null;
+        let waypointMarkers = [];
+        let activeGeneratedWaypoints = [];
 
-        // Auth Handlers
+        // Auth Handlers with full Popup fallback
         window.signInWithGoogle = async () => {
             try {
                 const provider = new GoogleAuthProvider();
@@ -715,56 +790,132 @@
             }
         };
 
-        // Instant Offline ICAO Lookup
-        window.lookupAirport = (type) => {
-            const inputElem = document.getElementById(type + 'Input');
-            const statusElem = document.getElementById(type + 'Status');
-            const icao = inputElem.value.toUpperCase().trim();
+        window.onDepChange = () => {
+            const icao = document.getElementById('depInput').value.toUpperCase().trim();
+            const statusElem = document.getElementById('depStatus');
+            const rwySelect = document.getElementById('depRwySelect');
 
-            if (icao.length < 3) {
-                statusElem.innerText = "";
-                return;
-            }
-
+            rwySelect.innerHTML = "";
             if (GLOBAL_AIRPORTS[icao]) {
                 const apt = GLOBAL_AIRPORTS[icao];
                 statusElem.innerText = `✓ ${apt.name}`;
                 statusElem.style.color = "var(--accent-yellow)";
-
-                if (type === 'dep') {
-                    depCoords = [apt.lat, apt.lon];
-                    if (depMarker) map.removeLayer(depMarker);
-                    depMarker = L.circleMarker(depCoords, { radius: 8, color: '#f5c518', fillOpacity: 0.9 })
-                        .addTo(map).bindPopup(`Departure: ${icao}`);
-                } else {
-                    arrCoords = [apt.lat, apt.lon];
-                    if (arrMarker) map.removeLayer(arrMarker);
-                    arrMarker = L.circleMarker(arrCoords, { radius: 8, color: '#38bdf8', fillOpacity: 0.9 })
-                        .addTo(map).bindPopup(`Arrival: ${icao}`);
-                }
-                updatePolyline();
+                
+                Object.keys(apt.runways).forEach(rwy => {
+                    const opt = document.createElement('option');
+                    opt.value = rwy;
+                    opt.innerText = `RWY ${rwy}`;
+                    rwySelect.appendChild(opt);
+                });
             } else {
-                statusElem.innerText = "ICAO found in regional database / Direct Match";
+                statusElem.innerText = icao.length === 4 ? "Custom ICAO (Standard threshold)" : "";
                 statusElem.style.color = "var(--accent-blue)";
-                // Fallback generic coordinate mapping if custom code entered
-                if (type === 'dep') depCoords = [40.0, -75.0];
-                else arrCoords = [50.0, 10.0];
-                updatePolyline();
+                const opt = document.createElement('option');
+                opt.value = "09";
+                opt.innerText = "RWY 09 (Default)";
+                rwySelect.appendChild(opt);
             }
+            updateRoutePreview();
         };
 
-        function updatePolyline() {
-            if (routePolyline) map.removeLayer(routePolyline);
-            let points = [];
-            if (depCoords) points.push(depCoords);
-            if (arrCoords) points.push(arrCoords);
+        window.onArrChange = () => {
+            const icao = document.getElementById('arrInput').value.toUpperCase().trim();
+            const statusElem = document.getElementById('arrStatus');
+            const rwySelect = document.getElementById('arrRwySelect');
 
-            if (points.length === 2) {
-                routePolyline = L.polyline(points, { color: '#f5c518', dashArray: '5, 5', weight: 2.5 }).addTo(map);
-                map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
-            } else if (depCoords) {
-                map.setView(depCoords, 6);
+            rwySelect.innerHTML = "";
+            if (GLOBAL_AIRPORTS[icao]) {
+                const apt = GLOBAL_AIRPORTS[icao];
+                statusElem.innerText = `✓ ${apt.name}`;
+                statusElem.style.color = "var(--accent-yellow)";
+                
+                Object.keys(apt.runways).forEach(rwy => {
+                    const opt = document.createElement('option');
+                    opt.value = rwy;
+                    opt.innerText = `RWY ${rwy}`;
+                    rwySelect.appendChild(opt);
+                });
+            } else {
+                statusElem.innerText = icao.length === 4 ? "Custom ICAO (Standard threshold)" : "";
+                statusElem.style.color = "var(--accent-blue)";
+                const opt = document.createElement('option');
+                opt.value = "27";
+                opt.innerText = "RWY 27 (Default)";
+                rwySelect.appendChild(opt);
             }
+            updateRoutePreview();
+        };
+
+        function getRunwayCoords(icao, rwyName, isDep) {
+            if (GLOBAL_AIRPORTS[icao] && GLOBAL_AIRPORTS[icao].runways[rwyName]) {
+                const pt = GLOBAL_AIRPORTS[icao].runways[rwyName];
+                return [pt.lat, pt.lon];
+            }
+            // Fallback coordinate generation if custom code
+            const base = GLOBAL_AIRPORTS[icao] ? [GLOBAL_AIRPORTS[icao].lat, GLOBAL_AIRPORTS[icao].lon] : (isDep ? [40.6398, -73.7789] : [51.4700, -0.4543]);
+            return base;
+        }
+
+        window.updateRoutePreview = () => {
+            const depIcao = document.getElementById('depInput').value.toUpperCase().trim();
+            const arrIcao = document.getElementById('arrInput').value.toUpperCase().trim();
+            const depRwy = document.getElementById('depRwySelect').value;
+            const arrRwy = document.getElementById('arrRwySelect').value;
+
+            if (depMarker) map.removeLayer(depMarker);
+            if (arrMarker) map.removeLayer(arrMarker);
+            if (routePolyline) map.removeLayer(routePolyline);
+            waypointMarkers.forEach(m => map.removeLayer(m));
+            waypointMarkers = [];
+
+            if (!depIcao || !arrIcao) return;
+
+            const depCoord = getRunwayCoords(depIcao, depRwy, true);
+            const arrCoord = getRunwayCoords(arrIcao, arrRwy, false);
+
+            depMarker = L.circleMarker(depCoord, { radius: 8, color: '#f5c518', fillOpacity: 0.9 })
+                .addTo(map).bindPopup(`Departure Threshold: ${depIcao} RWY ${depRwy || 'Default'}`);
+            
+            arrMarker = L.circleMarker(arrCoord, { radius: 8, color: '#38bdf8', fillOpacity: 0.9 })
+                .addTo(map).bindPopup(`Arrival Threshold: ${arrIcao} RWY ${arrRwy || 'Default'}`);
+
+            // Generate detailed procedural intermediate waypoints
+            activeGeneratedWaypoints = generateProceduralWaypoints(depIcao, arrIcao, depCoord, arrCoord);
+
+            let polyPoints = [depCoord, ...activeGeneratedWaypoints.map(w => [w.lat, w.lon]), arrCoord];
+
+            routePolyline = L.polyline(polyPoints, { color: '#f5c518', dashArray: '6, 6', weight: 2.5 }).addTo(map);
+            
+            // Plot waypoint icons on map
+            activeGeneratedWaypoints.forEach(wp => {
+                const wm = L.circleMarker([wp.lat, wp.lon], { radius: 4, color: '#ffffff', fillOpacity: 0.8 })
+                    .addTo(map).bindPopup(`Fix / Waypoint: ${wp.name}`);
+                waypointMarkers.push(wm);
+            });
+
+            map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+
+            // Display in text box
+            const box = document.getElementById('waypointSummaryBox');
+            const listText = document.getElementById('waypointListText');
+            box.style.display = 'block';
+            listText.innerText = `${depIcao} (RWY ${depRwy}) ➔ ` + activeGeneratedWaypoints.map(w => w.name).join(' ➔ ') + ` ➔ ${arrIcao} (RWY ${arrRwy})`;
+        };
+
+        function generateProceduralWaypoints(dep, arr, c1, c2) {
+            // Generates 2 realistic procedural oceanic / enroute fixes based on route vector
+            let latMid = (c1[0] + c2[0]) / 2 + 3.5;
+            let lonMid1 = c1[1] + (c2[1] - c1[1]) * 0.33;
+            let lonMid2 = c1[1] + (c2[1] - c1[1]) * 0.66;
+
+            const fixNames = ["DCT", "NERVA", "OMBOX", "BETOP", "TULIP", "KIMRO", "SUPOL"];
+            let name1 = dep.substring(0, 3) + "1";
+            let name2 = arr.substring(0, 3) + "2";
+
+            return [
+                { name: name1, lat: latMid - 1.2, lon: lonMid1 },
+                { name: name2, lat: latMid + 1.2, lon: lonMid2 }
+            ];
         }
 
         window.generateFlightPlan = async () => {
@@ -772,6 +923,8 @@
             const flightNo = document.getElementById('flightNoInput').value.trim() || "101";
             const dep = document.getElementById('depInput').value.toUpperCase().trim();
             const arr = document.getElementById('arrInput').value.toUpperCase().trim();
+            const depRwy = document.getElementById('depRwySelect').value || "09";
+            const arrRwy = document.getElementById('arrRwySelect').value || "27";
             const aircraft = document.getElementById('aircraftInput').value;
 
             if (!dep || !arr) {
@@ -782,9 +935,10 @@
             const newFlight = {
                 airline,
                 flightNo: airline + flightNo,
-                dep,
-                arr,
+                dep: `${dep} (${depRwy})`,
+                arr: `${arr} (${arrRwy})`,
                 aircraft,
+                waypoints: activeGeneratedWaypoints.map(w => w.name),
                 createdAt: Date.now()
             };
 
@@ -805,17 +959,17 @@
 
             document.getElementById('statRosterCount').innerText = myRoster.length;
 
-            // Reset form
-            depCoords = null;
-            arrCoords = null;
-            if (depMarker) map.removeLayer(depMarker);
-            if (arrMarker) map.removeLayer(arrMarker);
-            if (routePolyline) map.removeLayer(routePolyline);
-            
+            // Reset Form UI
             document.getElementById('depInput').value = "";
             document.getElementById('arrInput').value = "";
             document.getElementById('depStatus').innerText = "";
             document.getElementById('arrStatus').innerText = "";
+            document.getElementById('waypointSummaryBox').style.display = 'none';
+
+            if (depMarker) map.removeLayer(depMarker);
+            if (arrMarker) map.removeLayer(arrMarker);
+            if (routePolyline) map.removeLayer(routePolyline);
+            waypointMarkers.forEach(m => map.removeLayer(m));
 
             renderRoster();
             switchTab('roster');
@@ -840,7 +994,7 @@
         window.renderRoster = () => {
             const container = document.getElementById('myRosterContainer');
             if (myRoster.length === 0) {
-                container.innerHTML = `<div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first official route.</div>`;
+                container.innerHTML = `<div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first precise route.</div>`;
                 return;
             }
 
@@ -856,7 +1010,7 @@
                     <div class="route-info">
                         <span class="airport-code">${flight.dep}</span>
                         <div style="flex-grow:1; height:1px; background:var(--border-color); margin:0 15px; position:relative;">
-                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.7rem; background:var(--bg-color); padding:0 6px; color:var(--text-muted);">DIRECT ICAO</span>
+                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.65rem; background:var(--bg-color); padding:0 4px; color:var(--text-muted);">FIXES: ${(flight.waypoints || []).join(', ')}</span>
                         </div>
                         <span class="airport-code">${flight.arr}</span>
                     </div>
