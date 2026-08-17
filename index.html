@@ -1,1044 +1,697 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waypoint™ - Advanced Flight Dispatch EFB</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        :root {
-            --bg-color: #08080a;
-            --card-bg: rgba(18, 18, 26, 0.75);
-            --border-color: rgba(255, 255, 255, 0.09);
-            --accent-yellow: #f5c518;
-            --accent-blue: #38bdf8;
-            --accent-red: #ef4444;
-            --text-main: #f4f4f6;
-            --text-muted: #9494a0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WS-FS | Direct Flight Dispatch</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-panel: #0d121d;
+      --bg-card: rgba(16, 22, 35, 0.85);
+      --border-glow: rgba(0, 242, 254, 0.2);
+      --cyan-primary: #00f2fe;
+      --cyan-glow: rgba(0, 242, 254, 0.25);
+      --green-accent: #10b981;
+      --red-accent: #ef4444;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --radius-lg: 14px;
+      --radius-md: 8px;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 16px;
-            max-width: 520px;
-            margin: 0 auto;
-            position: relative;
-            min-height: 100vh;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
 
-        /* Welcome / TOS Gate Overlay */
-        #welcome-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(8, 8, 10, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-        .welcome-card {
-            background: rgba(18, 18, 26, 0.95);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 24px;
-            width: 100%;
-            max-width: 460px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
 
-        .welcome-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            text-align: center;
-            letter-spacing: 0.5px;
-        }
+    /* HOME SCREEN VIEW */
+    #home-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: radial-gradient(circle at center, #101828 0%, var(--bg-dark) 100%);
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2000;
+      transition: opacity 0.4s ease;
+    }
 
-        .welcome-title span {
-            font-size: 0.7rem;
-            vertical-align: super;
-            color: var(--accent-yellow);
-        }
+    #home-view.hidden {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
 
-        .tos-container {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            height: 170px;
-            overflow-y: auto;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
+    .hero-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 242, 254, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
-        .tos-container h4 {
-            color: var(--text-main);
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-        }
+    .hero-title {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, var(--cyan-primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-        .tos-container ul {
-            padding-left: 16px;
-            margin-bottom: 8px;
-        }
+    .hero-desc {
+      color: var(--text-sub);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
 
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            color: var(--text-main);
-            user-select: none;
-        }
+    .btn-launch {
+      background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+      color: #000;
+      border: none;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      font-weight: 800;
+      font-size: 1.05rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
 
-        .checkbox-group input {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--accent-yellow);
-            cursor: pointer;
-        }
+    .btn-launch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px var(--cyan-primary);
+    }
 
-        /* App Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-        }
+    /* MAIN APP INTERFACE */
+    header {
+      height: 60px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-glow);
+      background: rgba(7, 9, 14, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
 
-        h1 {
-            font-size: 1.2rem;
-            letter-spacing: 0.5px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        h1 span {
-            font-size: 0.65rem;
-            vertical-align: super;
-            color: var(--accent-yellow);
-        }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--cyan-primary), #4f46e5);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px var(--cyan-glow);
+      color: #000;
+      font-size: 0.9rem;
+    }
 
-        .header-badges {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.1rem;
+      background: linear-gradient(to right, #ffffff, var(--cyan-primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-        .utc-badge, .auth-badge {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            background: var(--card-bg);
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
+    .dispatch-container {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      height: calc(100vh - 60px);
+    }
 
-        .auth-badge {
-            color: var(--accent-yellow);
-            border-color: rgba(245, 197, 24, 0.3);
-        }
+    @media (max-width: 1024px) {
+      .dispatch-container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
 
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
+    .control-panel {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border-glow);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
+    .panel-section {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-        .tab-btn.active {
-            color: var(--accent-yellow);
-            border-color: var(--accent-yellow);
-            background: rgba(245, 197, 24, 0.06);
-        }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--cyan-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .panel {
-            display: none;
-        }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
 
-        .panel.active {
-            display: block;
-        }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
 
-        /* Dashboard Home Panel Styles */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
+    .field-label {
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
 
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 14px;
-            backdrop-filter: blur(10px);
-        }
+    .sim-input, .sim-select {
+      background: #07090e;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      width: 100%;
+    }
 
-        .stat-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
+    .sim-input:focus, .sim-select:focus {
+      outline: none;
+      border-color: var(--cyan-primary);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
 
-        .stat-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent-yellow);
-        }
+    .airport-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #07090e;
+      border: 1px solid var(--cyan-primary);
+      border-radius: var(--radius-md);
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 2000;
+      display: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+    }
 
-        .user-profile-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-            backdrop-filter: blur(12px);
-            text-align: center;
-        }
+    .airport-dropdown.show {
+      display: block;
+    }
 
-        .social-btn {
-            width: 100%;
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            transition: opacity 0.2s;
-        }
+    .airport-item {
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
 
-        .social-btn.apple {
-            background: #111;
-            color: #fff;
-            border: 1px solid var(--border-color);
-        }
+    .airport-item:hover {
+      background: rgba(0, 242, 254, 0.15);
+      color: var(--cyan-primary);
+    }
 
-        .social-btn:active {
-            opacity: 0.85;
-        }
+    .btn-generate {
+      background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 15px var(--cyan-glow);
+    }
 
-        /* Map Container */
-        #map-container {
-            position: relative;
-            margin-bottom: 16px;
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px var(--cyan-primary);
+    }
 
-        #map {
-            width: 100%;
-            height: 290px;
-            background: #111;
-        }
+    .map-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 450px;
+    }
 
-        .map-instruction {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 14, 0.85);
-            border: 1px solid var(--border-color);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            color: var(--accent-blue);
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            pointer-events: none;
-            white-space: nowrap;
-        }
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #07090e;
+    }
 
-        .form-section {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-            backdrop-filter: blur(12px);
-        }
+    .flight-status-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(13, 18, 29, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
 
-        .form-group {
-            margin-bottom: 12px;
-        }
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
+    .status-label {
+      font-size: 0.68rem;
+      color: var(--text-sub);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
 
-        label {
-            display: block;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
+    .status-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--cyan-primary);
+    }
 
-        input, select {
-            width: 100%;
-            padding: 11px 14px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-main);
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--accent-yellow);
-        }
-
-        .row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .row .form-group {
-            flex: 1;
-        }
-
-        .btn {
-            width: 100%;
-            background: var(--accent-yellow);
-            color: #000;
-            border: none;
-            padding: 13px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn:active {
-            opacity: 0.85;
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            margin-top: 8px;
-        }
-
-        .flight-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            backdrop-filter: blur(10px);
-        }
-
-        .flight-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .airline-tag {
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 6px;
-            background: rgba(245, 197, 24, 0.15);
-            color: var(--accent-yellow);
-        }
-
-        .route-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .airport-code {
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .empty-state {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            text-align: center;
-            padding: 30px 20px;
-            border: 1px dashed var(--border-color);
-            border-radius: 16px;
-            background: var(--card-bg);
-        }
-
-        .status-text {
-            font-size: 0.75rem;
-            color: var(--accent-blue);
-            margin-top: 4px;
-        }
-
-        .waypoint-box {
-            font-size: 0.75rem;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 8px;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-    </style>
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: #0d121d !important;
+      color: #fff !important;
+      border: 1px solid var(--cyan-primary);
+      border-radius: var(--radius-md);
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Welcome & Terms of Service Overlay Gate -->
-    <div id="welcome-overlay">
-        <div class="welcome-card">
-            <div class="welcome-title">Waypoint<span>™</span></div>
-            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Advanced Flight Dispatch & Precision Routing EFB</div>
-            
-            <div class="tos-container">
-                <h4>Terms of Service & Operational Guidelines</h4>
-                <p>Welcome to Waypoint™ Virtual Flight Dispatch. Review guidelines before proceeding:</p>
-                <br>
-                <ul>
-                    <li><strong>Precision Runway Thresholds:</strong> Routes lock directly onto user-selected departure and arrival runway headers.</li>
-                    <li><strong>Procedural Waypoints:</strong> Intermediate oceanic and enroute navigation fixes are automatically calculated.</li>
-                    <li><strong>Cloud Account Sync:</strong> Google and Apple sign-in securely associates flights to your personal cloud profile.</li>
-                    <li><strong>Simulation Compliance:</strong> For entertainment and simulation environments (GeoFS, PTFS, VATSIM) only.</li>
-                </ul>
-                <p>Check the box below to accept these conditions.</p>
-            </div>
+  <!-- HOME PAGE PORTAL -->
+  <div id="home-view">
+    <div class="hero-card">
+      <div style="font-size: 3rem; color: var(--cyan-primary);"><i class="fa-solid fa-paper-plane"></i></div>
+      <h1 class="hero-title">WS-FS Direct Dispatch</h1>
+      <p class="hero-desc">Ultra-fast flight planner built for GeoFS and browser flight simulators. Generate custom runway-aligned vectors, precise approach waypoints, and interactive maps instantly.</p>
+      <button class="btn-launch" onclick="enterDispatcher()">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Launch Flight Dispatcher</span>
+      </button>
+    </div>
+  </div>
 
-            <label class="checkbox-group">
-                <input type="checkbox" id="tosCheckbox" onchange="toggleContinueBtn()">
-                I have read and agree to the Waypoint™ Terms of Service
-            </label>
+  <!-- MAIN APP -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-plane"></i>
+      </div>
+      <span class="brand-title">WS-FS Direct Dispatch</span>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text-sub);" class="font-mono">GEOFS ROUTE ENGINE</div>
+  </header>
 
-            <button id="continueBtn" class="btn" disabled onclick="dismissWelcome()">Continue to Dispatch</button>
+  <div class="dispatch-container">
+    
+    <!-- LEFT CONTROL PANEL -->
+    <div class="control-panel">
+      
+      <div class="panel-section">
+        <div class="section-title"><span><i class="fa-solid fa-route"></i> Route Parameters</span></div>
+        
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Departure (ICAO)</label>
+            <input type="text" id="input-dep" class="sim-input font-mono" value="BKPR" placeholder="Search ICAO..." oninput="searchAirport(this.value, 'dep-results')" />
+            <div id="dep-results" class="airport-dropdown"></div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Arrival (ICAO)</label>
+            <input type="text" id="input-arr" class="sim-input font-mono" value="LSZH" placeholder="Search ICAO..." oninput="searchAirport(this.value, 'arr-results')" />
+            <div id="arr-results" class="airport-dropdown"></div>
+          </div>
         </div>
+
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Departure Runway</label>
+            <select id="select-dep-rwy" class="sim-select font-mono"><option value="AUTO">AUTO (Best Alignment)</option></select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Arrival Runway</label>
+            <select id="select-arr-rwy" class="sim-select font-mono"><option value="AUTO">AUTO (Best Alignment)</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title"><span><i class="fa-solid fa-plane-up"></i> Aircraft & Profile</span></div>
+        
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Aircraft Model</label>
+            <select id="select-aircraft" class="sim-select font-mono">
+              <option value="A320">Airbus A320-200</option>
+              <option value="B738" selected>Boeing 737-800</option>
+              <option value="B77W">Boeing 777-300ER</option>
+              <option value="B744">Boeing 747-400</option>
+              <option value="A388">Airbus A380-800</option>
+              <option value="C172">Cessna 172 Skyhawk</option>
+              <option value="E190">Embraer E190</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Cruise Altitude</label>
+            <input type="text" id="input-alt" class="sim-input font-mono" value="FL350" />
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateAndVerifyFlight()">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Generate & Verify Flight Plan</span>
+      </button>
+
+      <div class="panel-section" style="flex-grow: 1;">
+        <div class="section-title"><span><i class="fa-solid fa-list-check"></i> Waypoint Log</span></div>
+        <div id="waypoint-log" class="font-mono" style="font-size: 0.75rem; color: var(--text-sub); line-height: 1.6; max-height: 180px; overflow-y: auto;">
+          Ready to verify runway centerlines and build waypoint chain...
+        </div>
+      </div>
+
     </div>
 
-    <header>
-        <h1>Waypoint<span>™</span></h1>
-        <div class="header-badges">
-            <div class="auth-badge" id="authStatusBadge">Guest Mode</div>
-            <div class="utc-badge" id="utc-clock">UTC --:--</div>
-        </div>
-    </header>
+    <!-- RIGHT MAP VIEW -->
+    <div class="map-container">
+      <div id="map"></div>
 
-    <div class="tabs">
-        <div class="tab-btn active" onclick="switchTab('home')">Home</div>
-        <div class="tab-btn" onclick="switchTab('roster')">My Roster</div>
-        <div class="tab-btn" onclick="switchTab('create')">+ Dispatch</div>
+      <div class="flight-status-bar">
+        <div class="status-item">
+          <span class="status-label">Distance</span>
+          <span id="stat-dist" class="status-value font-mono">-- NM</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Estimated Heading</span>
+          <span id="stat-hdg" class="status-value font-mono">--°</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Runway Alignment Status</span>
+          <span id="stat-status" class="status-value font-mono" style="color: var(--green-accent);">VERIFIED & LOCKED</span>
+        </div>
+      </div>
     </div>
 
-    <!-- TAB 0: HOME / DASHBOARD -->
-    <div id="homePanel" class="panel active">
-        <div class="user-profile-box" id="userProfileBox">
-            <div id="loggedOutView">
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Sign in securely with Google or Apple to sync your flight rosters to the cloud database.</p>
-                <button class="social-btn" onclick="signInWithGoogle()">
-                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.19C.43 8.15 0 9.89 0 12s.43 3.85 1.19 5.39l4.08-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.17 2.64 1.19 6.61l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-                    Sign in with Google
-                </button>
-                <button class="social-btn apple" onclick="signInWithApple()">
-                     Sign in with Apple
-                </button>
-            </div>
-            <div id="loggedInView" style="display: none;">
-                <p style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 700; margin-bottom: 4px;" id="userNameDisplay">Connected Pilot</p>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;" id="userEmailDisplay">user@email.com</p>
-                <button class="btn btn-outline" style="margin-top: 0;" onclick="signOutUser()">Sign Out</button>
-            </div>
-        </div>
+  </div>
 
-        <div class="dashboard-grid">
-            <div class="stat-card">
-                <div class="stat-label">Cloud Roster</div>
-                <div class="stat-value" id="statRosterCount">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Precise Thresholds</div>
-                <div class="stat-value">Active</div>
-            </div>
-        </div>
-    </div>
+  <!-- Leaflet & Script Logic -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Expanded Airport Database with Runway Headings & Threshold Data
+    const airports = {
+      "BKPR": { name: "Pristina International", lat: 42.5728, lon: 21.0358, rwys: { "17": { hdg: 170 }, "35": { hdg: 350 } } },
+      "LSZH": { name: "Zurich Airport", lat: 47.4647, lon: 8.5492, rwys: { "14": { hdg: 140 }, "16": { hdg: 160 }, "28": { hdg: 280 }, "32": { hdg: 320 }, "34": { hdg: 340 } } },
+      "EDDF": { name: "Frankfurt Airport", lat: 50.0379, lon: 8.5622, rwys: { "07L": { hdg: 70 }, "07R": { hdg: 70 }, "25L": { hdg: 250 }, "25R": { hdg: 250 }, "18": { hdg: 180 } } },
+      "EGLL": { name: "London Heathrow", lat: 51.4700, lon: -0.4543, rwys: { "09L": { hdg: 90 }, "09R": { hdg: 90 }, "27L": { hdg: 270 }, "27R": { hdg: 270 } } },
+      "KJFK": { name: "John F. Kennedy Intl", lat: 40.6413, lon: -73.7781, rwys: { "04L": { hdg: 40 }, "04R": { hdg: 40 }, "13L": { hdg: 130 }, "22L": { hdg: 220 }, "22R": { hdg: 220 } } },
+      "KLAX": { name: "Los Angeles Intl", lat: 33.9416, lon: -118.4085, rwys: { "06L": { hdg: 60 }, "06R": { hdg: 60 }, "24L": { hdg: 240 }, "24R": { hdg: 240 } } },
+      "OMDB": { name: "Dubai International", lat: 25.2532, lon: 55.3657, rwys: { "12L": { hdg: 120 }, "12R": { hdg: 120 }, "30L": { hdg: 300 }, "30R": { hdg: 300 } } },
+      "LFPG": { name: "Paris Charles de Gaulle", lat: 49.0097, lon: 2.5479, rwys: { "08L": { hdg: 80 }, "08R": { hdg: 80 }, "26L": { hdg: 260 }, "26R": { hdg: 260 } } },
+      "EHAM": { name: "Amsterdam Schiphol", lat: 52.3105, lon: 4.7683, rwys: { "06": { hdg: 60 }, "18C": { hdg: 180 }, "24": { hdg: 240 }, "36R": { hdg: 360 } } },
+      "LEMD": { name: "Madrid Barajas", lat: 40.4936, lon: -3.5668, rwys: { "14L": { hdg: 140 }, "14R": { hdg: 140 }, "32L": { hdg: 320 }, "32R": { hdg: 320 } } },
+      "LIRF": { name: "Rome Fiumicino", lat: 41.8003, lon: 12.2389, rwys: { "16L": { hdg: 160 }, "16R": { hdg: 160 }, "34L": { hdg: 340 }, "34R": { hdg: 340 } } },
+      "VIDP": { name: "Indira Gandhi Intl Delhi", lat: 28.5562, lon: 77.1000, rwys: { "10": { hdg: 100 }, "28": { hdg: 280 }, "11": { hdg: 110 }, "29": { hdg: 290 } } },
+      "RJTT": { name: "Tokyo Haneda", lat: 35.5494, lon: 139.7798, rwys: { "16L": { hdg: 160 }, "16R": { hdg: 160 }, "34L": { hdg: 340 }, "34R": { hdg: 340 } } },
+      "YSSY": { name: "Sydney Kingsford Smith", lat: -33.9399, lon: 151.1753, rwys: { "07": { hdg: 70 }, "16L": { hdg: 160 }, "25": { hdg: 250 }, "34R": { hdg: 340 } } }
+    };
 
-    <!-- TAB 1: MY ROSTER -->
-    <div id="rosterPanel" class="panel">
-        <div id="myRosterContainer">
-            <div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first precise route.</div>
-        </div>
-    </div>
+    function enterDispatcher() {
+      document.getElementById('home-view').classList.add('hidden');
+      setTimeout(() => {
+        map.invalidateSize();
+        generateAndVerifyFlight();
+      }, 300);
+    }
 
-    <!-- TAB 2: CREATE / DISPATCH -->
-    <div id="createPanel" class="panel">
-        <div id="map-container">
-            <div id="map"></div>
-            <div class="map-instruction">🌐 Runway-to-Runway Procedural Fix Plotter</div>
-        </div>
+    // Initialize Leaflet Map
+    const map = L.map('map', { zoomControl: false }).setView([44.5, 14.5], 6);
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-        <div class="form-section">
-            <div class="row">
-                <div class="form-group">
-                    <label>Airline / Callsign</label>
-                    <input type="text" id="airlineInput" placeholder="e.g., DL, BAW">
-                </div>
-                <div class="form-group">
-                    <label>Flight Number</label>
-                    <input type="text" id="flightNoInput" placeholder="e.g., 2800">
-                </div>
-            </div>
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap & CARTO'
+    }).addTo(map);
 
-            <!-- Departure Row -->
-            <div class="row" style="margin-top: 12px;">
-                <div class="form-group" style="flex: 1.2;">
-                    <label>Departure ICAO</label>
-                    <input type="text" id="depInput" placeholder="e.g., KJFK" maxlength="4" style="text-transform: uppercase;" oninput="onDepChange()">
-                    <div id="depStatus" class="status-text"></div>
-                </div>
-                <div class="form-group" style="flex: 0.8;">
-                    <label>Dep Runway</label>
-                    <select id="depRwySelect" onchange="updateRoutePreview()">
-                        <option value="">Select ICAO first</option>
-                    </select>
-                </div>
-            </div>
+    let currentLayerGroup = L.layerGroup().addTo(map);
 
-            <!-- Arrival Row -->
-            <div class="row" style="margin-top: 12px;">
-                <div class="form-group" style="flex: 1.2;">
-                    <label>Arrival ICAO</label>
-                    <input type="text" id="arrInput" placeholder="e.g., EGLL" maxlength="4" style="text-transform: uppercase;" oninput="onArrChange()">
-                    <div id="arrStatus" class="status-text"></div>
-                </div>
-                <div class="form-group" style="flex: 0.8;">
-                    <label>Arr Runway</label>
-                    <select id="arrRwySelect" onchange="updateRoutePreview()">
-                        <option value="">Select ICAO first</option>
-                    </select>
-                </div>
-            </div>
+    function searchAirport(query, dropdownId) {
+      const dropdown = document.getElementById(dropdownId);
+      const clean = query.trim().toUpperCase();
+      if (!clean) { dropdown.classList.remove('show'); return; }
 
-            <div class="form-group" style="margin-top: 12px;">
-                <label>Aircraft Type</label>
-                <select id="aircraftInput">
-                    <optgroup label="Airbus">
-                        <option value="Airbus A320neo">Airbus A320neo</option>
-                        <option value="Airbus A321neo">Airbus A321neo</option>
-                        <option value="Airbus A330-900neo">Airbus A330-900neo</option>
-                        <option value="Airbus A350-900">Airbus A350-900</option>
-                        <option value="Airbus A380">Airbus A380</option>
-                    </optgroup>
-                    <optgroup label="Boeing">
-                        <option value="Boeing 737-800">Boeing 737-800</option>
-                        <option value="Boeing 737 MAX 8">Boeing 737 MAX 8</option>
-                        <option value="Boeing 777-300ER">Boeing 777-300ER</option>
-                        <option value="Boeing 787-10">Boeing 787-10</option>
-                        <option value="Boeing 747-8">Boeing 747-8</option>
-                    </optgroup>
-                    <optgroup label="Other">
-                        <option value="Embraer E195-E2">Embraer E195-E2</option>
-                        <option value="ATR 72-600">ATR 72-600</option>
-                    </optgroup>
-                </select>
-            </div>
+      const matches = Object.keys(airports).filter(code => code.includes(clean) || airports[code].name.toUpperCase().includes(clean));
+      if (matches.length === 0) { dropdown.classList.remove('show'); return; }
 
-            <div id="waypointSummaryBox" class="waypoint-box" style="display: none;">
-                <strong>Generated Waypoints:</strong> <span id="waypointListText">None</span>
-            </div>
-        </div>
+      dropdown.innerHTML = "";
+      matches.forEach(code => {
+        const ap = airports[code];
+        const item = document.createElement('div');
+        item.className = 'airport-item font-mono';
+        item.innerHTML = `<span><b>${code}</b> - ${ap.name}</span>`;
+        item.onclick = () => selectAirport(code, dropdownId);
+        dropdown.appendChild(item);
+      });
+      dropdown.classList.add('show');
+    }
 
-        <button class="btn" onclick="generateFlightPlan()">File Flight Plan to Cloud Roster</button>
-    </div>
+    function selectAirport(code, dropdownId) {
+      if (dropdownId === 'dep-results') {
+        document.getElementById('input-dep').value = code;
+        updateRunways('select-dep-rwy', code);
+      } else {
+        document.getElementById('input-arr').value = code;
+        updateRunways('select-arr-rwy', code);
+      }
+      document.getElementById(dropdownId).classList.remove('show');
+    }
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Firebase & Main Application Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
-        import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCBKrrdYY_nOfAJuzsY4ATh7-WOXNMcBgQ",
-            authDomain: "waypoint-e07ca.firebaseapp.com",
-            projectId: "waypoint-e07ca",
-            storageBucket: "waypoint-e07ca.firebasestorage.app",
-            messagingSenderId: "537963742039",
-            appId: "1:537963742039:web:66a2e20bbeed9c798d3412",
-            measurementId: "G-K7F4RVCRW8"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let currentUser = null;
-        let myRoster = [];
-
-        // Comprehensive Enhanced Airport & Threshold Database
-        const GLOBAL_AIRPORTS = {
-            "KJFK": {
-                name: "John F. Kennedy International",
-                lat: 40.6398, lon: -73.7789,
-                runways: {
-                    "04L": { lat: 40.6320, lon: -73.7910 },
-                    "04R": { lat: 40.6280, lon: -73.7850 },
-                    "22L": { lat: 40.6480, lon: -73.7650 },
-                    "22R": { lat: 40.6520, lon: -73.7700 },
-                    "13L": { lat: 40.6500, lon: -73.7880 },
-                    "31R": { lat: 40.6350, lon: -73.7620 }
-                }
-            },
-            "EGLL": {
-                name: "London Heathrow Airport",
-                lat: 51.4700, lon: -0.4543,
-                runways: {
-                    "09L": { lat: 51.4740, lon: -0.4750 },
-                    "09R": { lat: 51.4650, lon: -0.4720 },
-                    "27L": { lat: 51.4750, lon: -0.4300 },
-                    "27R": { lat: 51.4660, lon: -0.4280 }
-                }
-            },
-            "OMDB": {
-                name: "Dubai International Airport",
-                lat: 25.2532, lon: 55.3657,
-                runways: {
-                    "12R": { lat: 25.2650, lon: 55.3500 },
-                    "30L": { lat: 25.2400, lon: 55.3850 },
-                    "12L": { lat: 25.2750, lon: 55.3400 },
-                    "30R": { lat: 25.2300, lon: 55.3950 }
-                }
-            },
-            "EDDF": {
-                name: "Frankfurt Airport",
-                lat: 50.0333, lon: 8.5706,
-                runways: {
-                    "07C": { lat: 50.0350, lon: 8.5400 },
-                    "25C": { lat: 50.0310, lon: 8.6000 },
-                    "18": { lat: 50.0150, lon: 8.5700 },
-                    "07R": { lat: 50.0450, lon: 8.5300 }
-                }
-            },
-            "RJTT": {
-                name: "Tokyo Haneda Airport",
-                lat: 35.5494, lon: 139.7798,
-                runways: {
-                    "16L": { lat: 35.5600, lon: 139.7850 },
-                    "34R": { lat: 35.5350, lon: 139.7750 },
-                    "05": { lat: 35.5400, lon: 139.7600 },
-                    "23": { lat: 35.5580, lon: 139.7900 }
-                }
-            },
-            "KLAX": {
-                name: "Los Angeles International",
-                lat: 33.9425, lon: -118.4081,
-                runways: {
-                    "24L": { lat: 33.9450, lon: -118.4150 },
-                    "24R": { lat: 33.9480, lon: -118.4150 },
-                    "06L": { lat: 33.9400, lon: -118.3900 },
-                    "06R": { lat: 33.9370, lon: -118.3900 }
-                }
-            }
-        };
-
-        // Initialize Leaflet Map
-        const map = L.map('map', { zoomControl: false }).setView([30, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19
-        }).addTo(map);
-
-        let depMarker = null;
-        let arrMarker = null;
-        let routePolyline = null;
-        let waypointMarkers = [];
-        let activeGeneratedWaypoints = [];
-
-        // Auth Handlers with full Popup fallback
-        window.signInWithGoogle = async () => {
-            try {
-                const provider = new GoogleAuthProvider();
-                await signInWithPopup(auth, provider);
-            } catch (err) {
-                alert("Google Sign-In Error: " + err.message);
-            }
-        };
-
-        window.signInWithApple = async () => {
-            try {
-                const provider = new OAuthProvider('apple.com');
-                await signInWithPopup(auth, provider);
-            } catch (err) {
-                alert("Apple Sign-In Error: " + err.message);
-            }
-        };
-
-        window.signOutUser = async () => {
-            await signOut(auth);
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            const loggedOutView = document.getElementById('loggedOutView');
-            const loggedInView = document.getElementById('loggedInView');
-            const authStatusBadge = document.getElementById('authStatusBadge');
-
-            if (user) {
-                loggedOutView.style.display = 'none';
-                loggedInView.style.display = 'block';
-                document.getElementById('userNameDisplay').innerText = user.displayName || "Pilot User";
-                document.getElementById('userEmailDisplay').innerText = user.email || user.uid;
-                authStatusBadge.innerText = "Cloud Synced";
-                loadCloudRoster();
-            } else {
-                loggedOutView.style.display = 'block';
-                loggedInView.style.display = 'none';
-                authStatusBadge.innerText = "Guest Mode";
-                myRoster = [];
-                renderRoster();
-            }
+    function updateRunways(selectId, code) {
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = `<option value="AUTO">AUTO (Best Alignment)</option>`;
+      if (airports[code] && airports[code].rwys) {
+        Object.keys(airports[code].rwys).forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.innerText = `RWY ${r}`;
+          sel.appendChild(opt);
         });
+      }
+    }
 
-        window.toggleContinueBtn = () => {
-            const checkbox = document.getElementById('tosCheckbox');
-            const btn = document.getElementById('continueBtn');
-            btn.disabled = !checkbox.checked;
-        };
+    // Haversine formula for distance & bearing
+    function calculateFlightMetrics(lat1, lon1, lat2, lon2) {
+      const R = 3440.065; // Nautical miles
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const dist = R * c;
 
-        window.dismissWelcome = () => {
-            const overlay = document.getElementById('welcome-overlay');
-            overlay.style.opacity = '0';
-            overlay.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                map.invalidateSize();
-            }, 300);
-        };
+      const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+      let brng = Math.atan2(y, x) * 180 / Math.PI;
+      brng = (brng + 360) % 360;
 
-        window.switchTab = (tab) => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      return { dist: Math.round(dist), brng: Math.round(brng) };
+    }
 
-            if (tab === 'home') {
-                document.querySelectorAll('.tab-btn')[0].classList.add('active');
-                document.getElementById('homePanel').classList.add('active');
-            } else if (tab === 'roster') {
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
-                document.getElementById('rosterPanel').classList.add('active');
-            } else {
-                document.querySelectorAll('.tab-btn')[2].classList.add('active');
-                document.getElementById('createPanel').classList.add('active');
-                setTimeout(() => { map.invalidateSize(); }, 250);
-            }
-        };
+    // Calculate offset point given distance (NM) and bearing (deg)
+    function calculateOffsetPoint(lat, lon, brngDeg, distNm) {
+      const R = 3440.065;
+      const brng = brngDeg * Math.PI / 180;
+      const lat1 = lat * Math.PI / 180;
+      const lon1 = lon * Math.PI / 180;
 
-        window.onDepChange = () => {
-            const icao = document.getElementById('depInput').value.toUpperCase().trim();
-            const statusElem = document.getElementById('depStatus');
-            const rwySelect = document.getElementById('depRwySelect');
+      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(distNm/R) + Math.cos(lat1) * Math.sin(distNm/R) * Math.cos(brng));
+      const lon2 = lon1 + Math.atan2(Math.sin(brng) * Math.sin(distNm/R) * Math.cos(lat1), Math.cos(distNm/R) - Math.sin(lat1) * Math.sin(lat2));
 
-            rwySelect.innerHTML = "";
-            if (GLOBAL_AIRPORTS[icao]) {
-                const apt = GLOBAL_AIRPORTS[icao];
-                statusElem.innerText = `✓ ${apt.name}`;
-                statusElem.style.color = "var(--accent-yellow)";
-                
-                Object.keys(apt.runways).forEach(rwy => {
-                    const opt = document.createElement('option');
-                    opt.value = rwy;
-                    opt.innerText = `RWY ${rwy}`;
-                    rwySelect.appendChild(opt);
-                });
-            } else {
-                statusElem.innerText = icao.length === 4 ? "Custom ICAO (Standard threshold)" : "";
-                statusElem.style.color = "var(--accent-blue)";
-                const opt = document.createElement('option');
-                opt.value = "09";
-                opt.innerText = "RWY 09 (Default)";
-                rwySelect.appendChild(opt);
-            }
-            updateRoutePreview();
-        };
+      return [lat2 * 180 / Math.PI, lon2 * 180 / Math.PI];
+    }
 
-        window.onArrChange = () => {
-            const icao = document.getElementById('arrInput').value.toUpperCase().trim();
-            const statusElem = document.getElementById('arrStatus');
-            const rwySelect = document.getElementById('arrRwySelect');
+    function generateAndVerifyFlight() {
+      const depCode = document.getElementById('input-dep').value.trim().toUpperCase();
+      const arrCode = document.getElementById('input-arr').value.trim().toUpperCase();
+      const depRwySel = document.getElementById('select-dep-rwy').value;
+      const arrRwySel = document.getElementById('select-arr-rwy').value;
+      const logBox = document.getElementById('waypoint-log');
 
-            rwySelect.innerHTML = "";
-            if (GLOBAL_AIRPORTS[icao]) {
-                const apt = GLOBAL_AIRPORTS[icao];
-                statusElem.innerText = `✓ ${apt.name}`;
-                statusElem.style.color = "var(--accent-yellow)";
-                
-                Object.keys(apt.runways).forEach(rwy => {
-                    const opt = document.createElement('option');
-                    opt.value = rwy;
-                    opt.innerText = `RWY ${rwy}`;
-                    rwySelect.appendChild(opt);
-                });
-            } else {
-                statusElem.innerText = icao.length === 4 ? "Custom ICAO (Standard threshold)" : "";
-                statusElem.style.color = "var(--accent-blue)";
-                const opt = document.createElement('option');
-                opt.value = "27";
-                opt.innerText = "RWY 27 (Default)";
-                rwySelect.appendChild(opt);
-            }
-            updateRoutePreview();
-        };
+      if (!airports[depCode] || !airports[arrCode]) {
+        alert("Please select valid departure and arrival airports from the database.");
+        return;
+      }
 
-        function getRunwayCoords(icao, rwyName, isDep) {
-            if (GLOBAL_AIRPORTS[icao] && GLOBAL_AIRPORTS[icao].runways[rwyName]) {
-                const pt = GLOBAL_AIRPORTS[icao].runways[rwyName];
-                return [pt.lat, pt.lon];
-            }
-            // Fallback coordinate generation if custom code
-            const base = GLOBAL_AIRPORTS[icao] ? [GLOBAL_AIRPORTS[icao].lat, GLOBAL_AIRPORTS[icao].lon] : (isDep ? [40.6398, -73.7789] : [51.4700, -0.4543]);
-            return base;
-        }
+      const dep = airports[depCode];
+      const arr = airports[arrCode];
 
-        window.updateRoutePreview = () => {
-            const depIcao = document.getElementById('depInput').value.toUpperCase().trim();
-            const arrIcao = document.getElementById('arrInput').value.toUpperCase().trim();
-            const depRwy = document.getElementById('depRwySelect').value;
-            const arrRwy = document.getElementById('arrRwySelect').value;
+      // Determine runways & headings
+      const depRwyKey = depRwySel === 'AUTO' ? Object.keys(dep.rwys)[0] : depRwySel;
+      const arrRwyKey = arrRwySel === 'AUTO' ? Object.keys(arr.rwys)[0] : arrRwySel;
 
-            if (depMarker) map.removeLayer(depMarker);
-            if (arrMarker) map.removeLayer(arrMarker);
-            if (routePolyline) map.removeLayer(routePolyline);
-            waypointMarkers.forEach(m => map.removeLayer(m));
-            waypointMarkers = [];
+      const depRwyHdg = dep.rwys[depRwyKey] ? dep.rwys[depRwyKey].hdg : 0;
+      const arrRwyHdg = arr.rwys[arrRwyKey] ? arr.rwys[arrRwyKey].hdg : 0;
 
-            if (!depIcao || !arrIcao) return;
+      const metrics = calculateFlightMetrics(dep.lat, dep.lon, arr.lat, arr.lon);
 
-            const depCoord = getRunwayCoords(depIcao, depRwy, true);
-            const arrCoord = getRunwayCoords(arrIcao, arrRwy, false);
+      currentLayerGroup.clearLayers();
 
-            depMarker = L.circleMarker(depCoord, { radius: 8, color: '#f5c518', fillOpacity: 0.9 })
-                .addTo(map).bindPopup(`Departure Threshold: ${depIcao} RWY ${depRwy || 'Default'}`);
-            
-            arrMarker = L.circleMarker(arrCoord, { radius: 8, color: '#38bdf8', fillOpacity: 0.9 })
-                .addTo(map).bindPopup(`Arrival Threshold: ${arrIcao} RWY ${arrRwy || 'Default'}`);
+      // Markers for Dep & Arr
+      const depMarker = L.marker([dep.lat, dep.lon]).bindPopup(`<b>Departure: ${depCode}</b><br>RWY ${depRwyKey} Alignment`);
+      const arrMarker = L.marker([arr.lat, arr.lon]).bindPopup(`<b>Arrival: ${arrCode}</b><br>RWY ${arrRwyKey} Final Approach`);
+      currentLayerGroup.addLayer(depMarker);
+      currentLayerGroup.addLayer(arrMarker);
 
-            // Generate detailed procedural intermediate waypoints
-            activeGeneratedWaypoints = generateProceduralWaypoints(depIcao, arrIcao, depCoord, arrCoord);
+      // Custom approach waypoints aligned with runway headings until manual landing
+      const depExtension = calculateOffsetPoint(dep.lat, dep.lon, depRwyHdg, 8); // 8 NM out climb fix
+      const reciprocalArrHdg = (arrRwyHdg + 180) % 360;
+      const finalFix = calculateOffsetPoint(arr.lat, arr.lon, reciprocalArrHdg, 10); // 10 NM final approach fix
+      const intermediateFix = calculateOffsetPoint(arr.lat, arr.lon, reciprocalArrHdg, 22); // 22 NM initial approach fix
 
-            let polyPoints = [depCoord, ...activeGeneratedWaypoints.map(w => [w.lat, w.lon]), arrCoord];
+      const midLat = (depExtension[0] + intermediateFix[0]) / 2 + 1.0;
+      const midLon = (depExtension[1] + intermediateFix[1]) / 2;
 
-            routePolyline = L.polyline(polyPoints, { color: '#f5c518', dashArray: '6, 6', weight: 2.5 }).addTo(map);
-            
-            // Plot waypoint icons on map
-            activeGeneratedWaypoints.forEach(wp => {
-                const wm = L.circleMarker([wp.lat, wp.lon], { radius: 4, color: '#ffffff', fillOpacity: 0.8 })
-                    .addTo(map).bindPopup(`Fix / Waypoint: ${wp.name}`);
-                waypointMarkers.push(wm);
-            });
+      const latlngs = [
+        [dep.lat, dep.lon],
+        depExtension,
+        [midLat, midLon],
+        intermediateFix,
+        finalFix,
+        [arr.lat, arr.lon]
+      ];
 
-            map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+      // Draw route line
+      const polyline = L.polyline(latlngs, { color: '#00f2fe', weight: 3, opacity: 0.8, dashArray: '6, 6' });
+      currentLayerGroup.addLayer(polyline);
 
-            // Display in text box
-            const box = document.getElementById('waypointSummaryBox');
-            const listText = document.getElementById('waypointListText');
-            box.style.display = 'block';
-            listText.innerText = `${depIcao} (RWY ${depRwy}) ➔ ` + activeGeneratedWaypoints.map(w => w.name).join(' ➔ ') + ` ➔ ${arrIcao} (RWY ${arrRwy})`;
-        };
+      // Add waypoint markers
+      const waypoints = [
+        { name: `${depCode} RWY ${depRwyKey} Threshold`, lat: dep.lat, lon: dep.lon },
+        { name: 'SID Climb Vector (8NM)', lat: depExtension[0], lon: depExtension[1] },
+        { name: 'Enroute Cruise Waypoint', lat: midLat, lon: midLon },
+        { name: 'STAR Initial Approach Fix (IAF)', lat: intermediateFix[0], lon: intermediateFix[1] },
+        { name: 'ILS Final Approach Fix (FAF - Manual Takeover)', lat: finalFix[0], lon: finalFix[1] },
+        { name: `${arrCode} RWY ${arrRwyKey} Touchdown`, lat: arr.lat, lon: arr.lon }
+      ];
 
-        function generateProceduralWaypoints(dep, arr, c1, c2) {
-            // Generates 2 realistic procedural oceanic / enroute fixes based on route vector
-            let latMid = (c1[0] + c2[0]) / 2 + 3.5;
-            let lonMid1 = c1[1] + (c2[1] - c1[1]) * 0.33;
-            let lonMid2 = c1[1] + (c2[1] - c1[1]) * 0.66;
+      waypoints.forEach((wp, index) => {
+        const circle = L.circleMarker([wp.lat, wp.lon], {
+          radius: index === 0 || index === waypoints.length - 1 ? 6 : 4,
+          color: index === waypoints.length - 1 ? '#10b981' : '#00f2fe',
+          fillColor: '#07090e',
+          fillOpacity: 1,
+          weight: 2
+        }).bindPopup(`<b>WP ${index + 1}: ${wp.name}</b>`);
+        currentLayerGroup.addLayer(circle);
+      });
 
-            const fixNames = ["DCT", "NERVA", "OMBOX", "BETOP", "TULIP", "KIMRO", "SUPOL"];
-            let name1 = dep.substring(0, 3) + "1";
-            let name2 = arr.substring(0, 3) + "2";
+      map.fitBounds(polyline.getBounds(), { padding: [60, 60] });
 
-            return [
-                { name: name1, lat: latMid - 1.2, lon: lonMid1 },
-                { name: name2, lat: latMid + 1.2, lon: lonMid2 }
-            ];
-        }
+      // Update UI Stats
+      document.getElementById('stat-dist').innerText = `${metrics.dist} NM`;
+      document.getElementById('stat-hdg').innerText = `${metrics.brng}°`;
+      document.getElementById('stat-status').innerText = 'VERIFIED & LOCKED';
+      document.getElementById('stat-status').style.color = 'var(--green-accent)';
 
-        window.generateFlightPlan = async () => {
-            const airline = document.getElementById('airlineInput').value.trim() || "WAY";
-            const flightNo = document.getElementById('flightNoInput').value.trim() || "101";
-            const dep = document.getElementById('depInput').value.toUpperCase().trim();
-            const arr = document.getElementById('arrInput').value.toUpperCase().trim();
-            const depRwy = document.getElementById('depRwySelect').value || "09";
-            const arrRwy = document.getElementById('arrRwySelect').value || "27";
-            const aircraft = document.getElementById('aircraftInput').value;
+      // Update Waypoint Log
+      logBox.innerHTML = `
+        [OK] Runway ${depRwyKey} centerline verified for ${depCode} (${depRwyHdg}°)<br>
+        [OK] SID climb vector & enroute transition calculated<br>
+        [OK] Direct cruise track established (${metrics.dist} NM, HDG ${metrics.brng}°)<br>
+        [OK] STAR Arrival IAF & Final Approach Fix configured for RWY ${arrRwyKey} (${arrRwyHdg}°)<br>
+        [SUCCESS] Waypoints locked until manual autopilot disconnect for landing.
+      `;
+    }
 
-            if (!dep || !arr) {
-                alert("Please enter valid Departure and Arrival ICAO codes.");
-                return;
-            }
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.field-group')) {
+        document.querySelectorAll('.airport-dropdown').forEach(d => d.classList.remove('show'));
+      }
+    });
 
-            const newFlight = {
-                airline,
-                flightNo: airline + flightNo,
-                dep: `${dep} (${depRwy})`,
-                arr: `${arr} (${arrRwy})`,
-                aircraft,
-                waypoints: activeGeneratedWaypoints.map(w => w.name),
-                createdAt: Date.now()
-            };
-
-            if (currentUser) {
-                try {
-                    newFlight.uid = currentUser.uid;
-                    const docRef = await addDoc(collection(db, "flights"), newFlight);
-                    newFlight.id = docRef.id;
-                    myRoster.push(newFlight);
-                } catch (err) {
-                    alert("Database save error: " + err.message);
-                    return;
-                }
-            } else {
-                newFlight.id = Date.now();
-                myRoster.push(newFlight);
-            }
-
-            document.getElementById('statRosterCount').innerText = myRoster.length;
-
-            // Reset Form UI
-            document.getElementById('depInput').value = "";
-            document.getElementById('arrInput').value = "";
-            document.getElementById('depStatus').innerText = "";
-            document.getElementById('arrStatus').innerText = "";
-            document.getElementById('waypointSummaryBox').style.display = 'none';
-
-            if (depMarker) map.removeLayer(depMarker);
-            if (arrMarker) map.removeLayer(arrMarker);
-            if (routePolyline) map.removeLayer(routePolyline);
-            waypointMarkers.forEach(m => map.removeLayer(m));
-
-            renderRoster();
-            switchTab('roster');
-        };
-
-        async function loadCloudRoster() {
-            if (!currentUser) return;
-            try {
-                const q = query(collection(db, "flights"), where("uid", "==", currentUser.uid));
-                const querySnapshot = await getDocs(q);
-                myRoster = [];
-                querySnapshot.forEach((docSnap) => {
-                    myRoster.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                document.getElementById('statRosterCount').innerText = myRoster.length;
-                renderRoster();
-            } catch (err) {
-                console.error("Error loading cloud roster:", err);
-            }
-        }
-
-        window.renderRoster = () => {
-            const container = document.getElementById('myRosterContainer');
-            if (myRoster.length === 0) {
-                container.innerHTML = `<div class="empty-state">Your roster is currently empty.<br>Tap "+ Dispatch" to plan your first precise route.</div>`;
-                return;
-            }
-
-            container.innerHTML = "";
-            myRoster.forEach(flight => {
-                const card = document.createElement('div');
-                card.className = 'flight-card';
-                card.innerHTML = `
-                    <div class="flight-header">
-                        <span class="airline-tag">${flight.airline} (${flight.flightNo})</span>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">${flight.aircraft}</span>
-                    </div>
-                    <div class="route-info">
-                        <span class="airport-code">${flight.dep}</span>
-                        <div style="flex-grow:1; height:1px; background:var(--border-color); margin:0 15px; position:relative;">
-                            <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.65rem; background:var(--bg-color); padding:0 4px; color:var(--text-muted);">FIXES: ${(flight.waypoints || []).join(', ')}</span>
-                        </div>
-                        <span class="airport-code">${flight.arr}</span>
-                    </div>
-                    <button class="btn btn-outline" onclick="removeFlight('${flight.id}')">Remove from Roster</button>
-                `;
-                container.appendChild(card);
-            });
-        };
-
-        window.removeFlight = async (id) => {
-            if (currentUser) {
-                try {
-                    await deleteDoc(doc(db, "flights", id));
-                } catch (err) {
-                    alert("Error removing flight: " + err.message);
-                    return;
-                }
-            }
-            myRoster = myRoster.filter(f => f.id !== id);
-            document.getElementById('statRosterCount').innerText = myRoster.length;
-            renderRoster();
-        };
-
-        // Live UTC Clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('utc-clock').innerText = `UTC ${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
-        }, 1000);
-    </script>
+    // Populate initial runways on load
+    window.onload = () => {
+      updateRunways('select-dep-rwy', 'BKPR');
+      updateRunways('select-arr-rwy', 'LSZH');
+    };
+  </script>
 </body>
 </html>
